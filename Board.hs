@@ -38,7 +38,7 @@ inRange :: Board -> Pos -> Bool
 inRange b (x,y) = 0 <= x && x < (size b) && 0 <= y && y < (size b)
 
 getPiece :: Board -> Pos -> Piece
-getPiece b p = (toVector b) V.! (ctoi b p)
+getPiece b p = if inRange b p then (toVector b) V.! (ctoi b p) else Block
 (!) = getPiece
 
 rawSetPiece :: Pos -> Piece -> Board -> Board

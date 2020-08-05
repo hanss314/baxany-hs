@@ -42,3 +42,4 @@ oc = other . color
 instance Show Piece where
     show (Piece c t) = (show c) ++ (show t)
     show Empty = "   "
+    show Block = "XXX"

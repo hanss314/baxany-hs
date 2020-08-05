@@ -47,4 +47,4 @@ doMove b pawn@(Piece c (Pawn _)) s@(x,y) m@[e@(mx,my)]
     | otherwise = (rawSetPieces eps . rawMovePiece s e) b where
         eps = [((x,j), Piece c (EnPassant e)) | j <- [(min y my)+1..(max y my)-1]]
 
-doMove _ _ _ _ = Nothing
+doMove b _ _ _ = b
