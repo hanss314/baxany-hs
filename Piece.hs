@@ -32,7 +32,7 @@ instance Show PieceType where
    show King   = "K "
    show (EnPassant _) = "  "
 
-data Piece =  Piece !Color !PieceType | Empty
+data Piece =  Piece !Color !PieceType | Empty | Block
    deriving Eq
 
 color :: Piece -> Color

@@ -40,11 +40,11 @@ capturingMove :: Pos -> Pos -> Board -> Board
 capturingMove s e b = (postCapture p e . rawMovePiece s e . preCapture p e s) b where
     p = getPiece b e
 
-doMove :: Board -> Piece -> Pos -> Move -> Maybe Board
+-- Assume Move is legal here
+doMove :: Board -> Piece -> Pos -> Move -> Board
 doMove b pawn@(Piece c (Pawn _)) s@(x,y) m@[e@(mx,my)]
-    | not $ elem m (getMoves b pawn s) = Nothing
-    | x /= mx = Just $ capturingMove s e b
-    | otherwise = Just $ (rawSetPieces eps . rawMovePiece s e) b where
+    | x /= mx = capturingMove s e b
+    | otherwise = (rawSetPieces eps . rawMovePiece s e) b where
         eps = [((x,j), Piece c (EnPassant e)) | j <- [(min y my)+1..(max y my)-1]]
 
 doMove _ _ _ _ = Nothing

@@ -34,15 +34,19 @@ emptyBoard n = Board
 ctoi :: Board -> Pos -> Int
 ctoi b (x,y) = y*(size b) + x
 
+inRange :: Board -> Pos -> Bool
+inRange b (x,y) = 0 <= x && x < (size b) && 0 <= y && y < (size b)
+
 getPiece :: Board -> Pos -> Piece
 getPiece b p = (toVector b) V.! (ctoi b p)
 (!) = getPiece
 
 rawSetPiece :: Pos -> Piece -> Board -> Board
-rawSetPiece pos pie b = b { toVector = toVector b V.// [(ctoi b pos, pie)] }
+rawSetPiece pos pie b = if not $ inRange b pos then b else
+    b { toVector = toVector b V.// [(ctoi b pos, pie)] }
 
 rawSetPieces :: [(Pos, Piece)] -> Board -> Board
-rawSetPieces p b = b {toVector = toVector b V.// map (B.first (ctoi b)) p}
+rawSetPieces p b = b {toVector = toVector b V.// (map (B.first (ctoi b)) $ filter (inRange b . fst) p)}
 
 rawMovePiece :: Pos -> Pos -> Board -> Board
 rawMovePiece s d b = b { toVector = toVector b V.// [(ctoi b d, b!s), (ctoi b s, Empty)] }
