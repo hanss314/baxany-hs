@@ -18,10 +18,13 @@ canCapture _ _ = False
 
 -- capturee capturee capturer
 preCapture :: Piece -> Pos -> Pos -> Board -> Board
-preCapture _ _ _ = id
+preCapture ep@(Piece _ (EnPassant p)) e s b = preCapture (getPiece b p) e s b
+preCapture _ _ _ b = b
 
 postCapture :: Piece -> Pos -> Board -> Board
-postCapture _ _ = id
+postCapture ep@(Piece _ (EnPassant p)) e b = (rawSetPiece p Empty . postCapture target e) b where
+    target = getPiece b p
+postCapture _ _ b = b
 
 getMoves :: Board -> Piece -> Pos -> [Move]
 -- Pawn
