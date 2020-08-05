@@ -22,7 +22,7 @@ preCapture ep@(Piece _ (EnPassant p)) e s b = preCapture (getPiece b p) e s b
 preCapture _ _ _ b = b
 
 postCapture :: Piece -> Pos -> Board -> Board
-postCapture ep@(Piece _ (EnPassant p)) e b = (rawSetPiece p Empty . postCapture target e) b where
+postCapture ep@(Piece _ (EnPassant p)) e b = (postCapture target e . rawSetPiece p Empty) b where
     target = getPiece b p
 postCapture _ _ b = b
 
