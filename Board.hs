@@ -20,7 +20,7 @@ switch !board = board {
 }
 
 clearEP :: Color -> Piece -> Piece
-clearEP tc p@(Piece pc (EnPassant _)) = if tc == pc then Empty else p
+clearEP tc p@(Piece pc (Pawn (EnPassant _))) = if tc == pc then (Piece pc (Pawn Normal)) else p
 clearEP _ x = x
 
 emptyBoard :: Int -> Board
@@ -63,3 +63,4 @@ instance Show Board where
         showLine rank v = (hex !! rank) : ' ' : (intercalate " " $ map show $ V.toList v)
         showFile f = ' ' : (hex !! f) : " "
         splitRows v = if V.length v <= n then [v] else V.take n v : (splitRows $ V.drop n v)
+

@@ -5,6 +5,8 @@ import Pos (Pos)
 data Color = Black | White
    deriving (Eq)
 
+data PawnState = Start | EnPassant [Pos] | Normal deriving Eq
+
 other :: Color -> Color
 other White = Black
 other Black = White
@@ -14,13 +16,12 @@ instance Show Color where
     show White = "w"
 
 data PieceType =
-             Pawn Bool
+             Pawn PawnState
            | Knight
            | Bishop
            | Rook
            | Queen
            | King
-           | EnPassant Pos
    deriving (Eq)
 
 instance Show PieceType where
@@ -30,7 +31,6 @@ instance Show PieceType where
    show Rook   = "R "
    show Queen  = "Q "
    show King   = "K "
-   show (EnPassant _) = "  "
 
 data Piece =  Piece !Color !PieceType | Empty | Block
    deriving Eq
