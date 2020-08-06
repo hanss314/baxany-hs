@@ -3,6 +3,8 @@ import Piece
 import Board
 import Transforms
 
+import Data.Function
+
 type Move = [Pos]
 
 mb :: Color -> Move -> Move
@@ -42,7 +44,7 @@ getMoves b pawn@(Piece c (Pawn m)) p = forward ++ captures ++ eps where
 getMoves _ _ _ = []
 
 capturingMove :: Pos -> Pos -> Board -> Board
-capturingMove s e b = (postCapture p e . rawMovePiece s e . preCapture p e s) b where
+capturingMove s e b = b & preCapture p e s & rawMovePiece s e & postCapture p e where
     p = getPiece b e
 
 nextPawn :: Piece -> [Pos] -> Piece
@@ -53,7 +55,7 @@ nextPawn p _ = p
 doMove :: Board -> Piece -> Pos -> Move -> Board
 doMove b pawn@(Piece c (Pawn _)) s@(x,y) m@[e@(mx,my)]
     | x /= mx = capturingMove s e b
-    | length epsPos > 0 = (postCapture epCapPie epCap . normalmove . preCapture epCapPie epCap s) b
+    | length epsPos > 0 = b & preCapture epCapPie epCap s & normalmove & postCapture epCapPie epCap
     | otherwise = normalmove b
     where
         epsPos = getEps c b e
