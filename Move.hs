@@ -1,3 +1,5 @@
+module Move where
+
 import Pos
 import Piece
 import Board
