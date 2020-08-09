@@ -28,6 +28,12 @@ preCapture _ _ _ b = b
 postCapture :: Piece -> Pos -> Board -> Board
 postCapture _ _ b = b
 
+normalMove :: Board -> Pos -> Pos -> Board
+normalMove b start end = case getPiece b end of
+    Block -> b
+    Empty -> rawMovePiece start end b
+    x -> b & preCapture x end start & rawMovePiece start end & postCapture x end
+
 getEps :: Color -> Board -> Pos -> [Pos]
 getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0..(size board)-1] where
     canEp movepos (Piece pc (Pawn (EnPassant eppos))) = c /= pc && elem movepos eppos
@@ -69,5 +75,6 @@ doMove b pawn@(Piece c (Pawn _)) s@(x,y) m@[e@(mx,my)]
         myeps = [(x,j) | j <- [(min y my)+1..(max y my)-1]]
         normalmove = rawSetPieces $ (e,nextPawn pawn myeps) : (s,Empty) :  map (flip (,) Empty) epsPos
 
-
 doMove b _ _ _ = b
+
+
