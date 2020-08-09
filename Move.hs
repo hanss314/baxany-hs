@@ -35,15 +35,18 @@ getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0.
 
 getMoves :: Board -> Piece -> Pos -> [Move]
 -- Pawn
-getMoves b pawn@(Piece c (Pawn m)) p = forward ++ captures ++ eps where
-    basef = [(0,1)]:if m == Start then [[(0,2)]] else []
-    forward = filter ((==) Empty . getPiece b . head) $ map (mb c . (p >+)) basef
+getMoves b pawn@(Piece c (Pawn m)) p = forward ++ second ++ captures ++ eps where
+    forward = filter ((==) Empty . getPiece b . head) $ map ((p >+) . mb c) [[(0,1)]]
+    second = if null forward || m /= Start then [] else 
+            filter ((==) Empty . getPiece b . head) $ map ((p >+) . mb c) [[(0,2)]]
     captures = filter (canCapture pawn . getPiece b . head) $ map ((p >+) . mb c) [[(1,1)], [(-1,1)]]
-    eps = filter (not . null . getEps c b . (p |+) . head . mb c) [[(1,1)], [(-1,1)]]
+    eps = filter (not . null . getEps c b . head) $ map ((p >+) . mb c) [[(1,1)], [(-1,1)]]
     
-
--- default piece has no moves (EnPassant)
+-- default piece has no moves
 getMoves _ _ _ = []
+
+movesAt :: Board -> Pos -> [Move]
+movesAt b pos = getMoves b (getPiece b pos) pos
 
 capturingMove :: Pos -> Pos -> Board -> Board
 capturingMove s e b = b & preCapture p e s & rawMovePiece s e & postCapture p e where
@@ -56,8 +59,8 @@ nextPawn p _ = p
 -- Assume Move is legal here
 doMove :: Board -> Piece -> Pos -> Move -> Board
 doMove b pawn@(Piece c (Pawn _)) s@(x,y) m@[e@(mx,my)]
-    | x /= mx = capturingMove s e b
     | length epsPos > 0 = b & preCapture epCapPie epCap s & normalmove & postCapture epCapPie epCap
+    | x /= mx = capturingMove s e b
     | otherwise = normalmove b
     where
         epsPos = getEps c b e

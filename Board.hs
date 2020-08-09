@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Board where
 
 import qualified Data.Vector as V
@@ -64,3 +66,5 @@ instance Show Board where
         showFile f = ' ' : (hex !! f) : " "
         splitRows v = if V.length v <= n then [v] else V.take n v : (splitRows $ V.drop n v)
 
+regularChess :: Board
+regularChess = rawSetPieces [((x,y), Piece (if y==1 then White else Black) (Pawn Start)) | x<-[0..7], y<-[1,6]] $ emptyBoard 8
