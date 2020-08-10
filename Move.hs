@@ -40,6 +40,18 @@ getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0.
 basicFilter :: Board -> Piece -> [Pos] -> [Move]
 basicFilter b p = (map listify . filter (canCapture p . getPiece b))
 
+basicSlider :: Board -> Piece -> Pos -> Pos -> [Pos]
+basicSlider board piece start step
+    | nextPiece == Empty = nextPos : basicSlider board piece nextPos step
+    | canCapture piece nextPiece = [nextPos]
+    | otherwise = []
+    where 
+        nextPos = start |+ step
+        nextPiece = getPiece board nextPos
+
+basicFilterSlider :: Board -> Piece -> Pos -> [Pos] -> [Move]
+basicFilterSlider board piece pos steps = basicFilter board piece $ steps >>= basicSlider board piece pos
+
 getMoves :: Board -> Piece -> Pos -> [Move]
 -- Pawn
 getMoves b pawn@(Piece c (Pawn m)) p = forward ++ second ++ captures ++ eps where
@@ -52,6 +64,9 @@ getMoves b pawn@(Piece c (Pawn m)) p = forward ++ second ++ captures ++ eps wher
 -- Rest of normal chess pieces
 getMoves b king@(Piece _ King) p = basicFilter b king $ p >+ ([(0,1),(1,1)] >>= r4)
 getMoves b knight@(Piece _ Knight) p = basicFilter b knight $ p >+ (mh (1,2) >>= r4)
+getMoves b bishop@(Piece _ Bishop) p = basicFilterSlider board bishop p $ r4 (1,1)
+getMoves b rook@(Piece _ Rook) p = basicFilterSlider board rook p $ r4 (1,0)
+getMoves b queen@(Piece _ Queen) p = basicFilterSlider board rook p $ [(0,1), (1,1)] >>= r4
 
 -- default piece has no moves
 getMoves _ _ _ = []
