@@ -25,11 +25,11 @@ getMoves b pawn@(Piece c (Pawn m)) p = forward ++ second ++ captures ++ eps wher
     eps = filter (not . null . getEps c b . head) $ map ((p >+) . mb c) [[(1,1)], [(-1,1)]]
 
 -- Rest of normal chess pieces
-getMoves b king@(Piece _ King) p = basicFilter b king $ p >+ ([(0,1),(1,1)] >>= r4)
+getMoves b king@(Piece _ King) p = basicFilter b king $ p >+ ua
 getMoves b knight@(Piece _ Knight) p = basicFilter b knight $ p >+ (mh (1,2) >>= r4)
-getMoves b bishop@(Piece _ Bishop) p = basicFilterSlider b bishop p $ r4 (1,1)
-getMoves b rook@(Piece _ Rook) p = basicFilterSlider b rook p $ r4 (1,0)
-getMoves b queen@(Piece _ Queen) p = basicFilterSlider b queen p $ [(0,1), (1,1)] >>= r4
+getMoves b bishop@(Piece _ Bishop) p = basicFilterSlider b bishop p ud
+getMoves b rook@(Piece _ Rook) p = basicFilterSlider b rook p  uo
+getMoves b queen@(Piece _ Queen) p = basicFilterSlider b queen p ua
 
 -- default piece has no moves
 getMoves _ _ _ = []
@@ -40,6 +40,9 @@ movesAt b pos = getMoves b (getPiece b pos) pos
 capturingMove :: Pos -> Pos -> Board -> Board
 capturingMove s e b = b & preCapture p e s & rawMovePiece s e & postCapture p e where
     p = getPiece b e
+
+doMoveAt :: Board -> Pos -> Move -> Board
+doMoveAt b pos move = doMove b (getPiece b pos) pos move
 
 -- Assume Move is legal here
 doMove :: Board -> Piece -> Pos -> Move -> Board
