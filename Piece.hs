@@ -22,15 +22,61 @@ data PieceType =
            | Rook
            | Queen
            | King
+           | Amazon | Chancellor | Cardinal
+           | HookMover
+           | Knightmare
+           | Empress
+           | General
+           | Pao | Val | Leo
+           | Mage
+           | Cobra | Camel | Zebra | Giraffe | Kangaroo
+           | Lion
+           | Dragon
+           | Imitator
+           | Chariot
+           | Elephant
+           | Chameleon PieceType
+           | Ace Int | Joker | Jack
+           | Trebuchet
+           | Ghoul
+           | Gryphon
    deriving (Eq)
 
 instance Show PieceType where
-   show (Pawn _)  = "P "
-   show Knight = "N "
-   show Bishop = "B "
-   show Rook   = "R "
-   show Queen  = "Q "
-   show King   = "K "
+    show (Pawn _)       = "P "
+    show Knight         = "N "
+    show Bishop         = "B "
+    show Rook           = "R "
+    show Queen          = "Q "
+    show King           = "K "
+    show Amazon         = "A " 
+    show Chancellor     = "Ch"
+    show Cardinal       = "Cn"
+    show HookMover      = "H"
+    show Knightmare     = "Nm"
+    show Empress        = "Em"
+    show General        = "G "
+    show Pao            = "Pa"
+    show Val            = "Va"
+    show Leo            = "L "
+    show Mage           = "M "
+    show Cobra          = "Co"
+    show Camel          = "Ca"
+    show Zebra          = "Z "
+    show Giraffe        = "Gi"
+    show Kangaroo       = "Kg"
+    show Lion           = "Li"
+    show Dragon         = "D "
+    show Imitator       = "I "
+    show Chariot        = "Cr"
+    show Elephant       = "El"
+    show (Chameleon _)  = "Cm"
+    show (Ace _)        = "Ac"
+    show Joker          = "J "
+    show Jack           = "Ja"
+    show Trebuchet      = "Tr"
+    show Ghoul          = "Gh"
+    show Gryphon        = "Gy"
 
 data Piece =  Piece !Color !PieceType | Empty | Block
    deriving Eq

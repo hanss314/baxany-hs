@@ -32,6 +32,14 @@ basicSlider board piece start step
         nextPos = start |+ step
         nextPiece = getPiece board nextPos
 
+noCapSlider :: Board -> Piece -> Pos -> Pos -> [Pos]
+noCapSlider board piece start step
+    | nextPiece == Empty = nextPos : basicSlider board piece nextPos step
+    | otherwise = []
+    where
+        nextPos = start |+ step
+        nextPiece = getPiece board nextPos
+
 basicFilterSlider :: Board -> Piece -> Pos -> [Pos] -> [Move]
 basicFilterSlider board piece pos steps = basicFilter board piece $ steps >>= basicSlider board piece pos
 

@@ -5,6 +5,10 @@ import qualified Prelude as P
 infixl 6 |+, |-, >+, >-
 infixl 7 |*, >*
 
+instance Ord Pos where
+    (<=) (a,b) (c,d) = if a == c then b <= d else a < c
+
+
 type Pos = (P.Int, P.Int)
 type Pos2 = Pos -> Pos
 type PosExp = Pos -> [Pos]

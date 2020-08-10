@@ -31,6 +31,11 @@ getMoves b bishop@(Piece _ Bishop) p = basicFilterSlider b bishop p ud
 getMoves b rook@(Piece _ Rook) p = basicFilterSlider b rook p  uo
 getMoves b queen@(Piece _ Queen) p = basicFilterSlider b queen p ua
 
+-- Knight compounds
+getMoves b (Piece c Amazon) p = (getMoves b (Piece c Queen) p) ++ (getMoves b (Piece c Knight) p)
+getMoves b (Piece c Cardinal) p = (getMoves b (Piece c Bishop) p) ++ (getMoves b (Piece c Knight) p)
+getMoves b (Piece c Chancellor) p = (getMoves b (Piece c Rook) p) ++ (getMoves b (Piece c Knight) p)
+
 -- default piece has no moves
 getMoves _ _ _ = []
 
@@ -62,7 +67,11 @@ doMove b (Piece _ King) s [e] = normalMove s e b
 doMove b (Piece _ Knight) s [e] = normalMove s e b
 doMove b (Piece _ Queen) s [e] = normalMove s e b
 doMove b (Piece _ Bishop) s [e] = normalMove s e b
-doMove b (Piece _ Rook) s [e] = normalMove s e b
+doMove b (Piece _ Amazon) s [e] = normalMove s e b
+doMove b (Piece _ Chancellor) s [e] = normalMove s e b
+doMove b (Piece _ Cardinal) s [e] = normalMove s e b
+
+
 
 doMove b _ _ _ = b
 
