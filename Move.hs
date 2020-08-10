@@ -64,9 +64,9 @@ getMoves b pawn@(Piece c (Pawn m)) p = forward ++ second ++ captures ++ eps wher
 -- Rest of normal chess pieces
 getMoves b king@(Piece _ King) p = basicFilter b king $ p >+ ([(0,1),(1,1)] >>= r4)
 getMoves b knight@(Piece _ Knight) p = basicFilter b knight $ p >+ (mh (1,2) >>= r4)
-getMoves b bishop@(Piece _ Bishop) p = basicFilterSlider board bishop p $ r4 (1,1)
-getMoves b rook@(Piece _ Rook) p = basicFilterSlider board rook p $ r4 (1,0)
-getMoves b queen@(Piece _ Queen) p = basicFilterSlider board rook p $ [(0,1), (1,1)] >>= r4
+getMoves b bishop@(Piece _ Bishop) p = basicFilterSlider b bishop p $ r4 (1,1)
+getMoves b rook@(Piece _ Rook) p = basicFilterSlider b rook p $ r4 (1,0)
+getMoves b queen@(Piece _ Queen) p = basicFilterSlider b queen p $ [(0,1), (1,1)] >>= r4
 
 -- default piece has no moves
 getMoves _ _ _ = []
