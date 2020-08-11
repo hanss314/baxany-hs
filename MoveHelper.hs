@@ -37,8 +37,6 @@ mhead (N (x:_)) = x
 mageify :: Move -> Move
 mageify = MageMove . mhead
 
-
-
 listify :: Pos -> Move
 listify x = N [x]
 
@@ -99,3 +97,8 @@ cannon board piece start step
     where
         nextPos = start |+ step
         nextPiece = getPiece board nextPos
+
+toList :: Move -> [Pos]
+toList (N xs) = xs
+toList (MageMove x) = [x]
+

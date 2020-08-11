@@ -11,6 +11,12 @@ import Interactions
 import Data.Function
 import Data.List
 
+capturableSquares :: Board -> Piece -> Pos -> [Pos]
+capturableSquares _ (Piece _ Imitator) _ = []
+capturableSquares board piece pos = 
+    (map head . group . sort . filter (canCapture piece . getPiece board) 
+              . concat . map toList . rawGetMoves board piece) pos  
+
 getEps :: Color -> Board -> Pos -> [Pos]
 getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0..(size board)-1] where
     canEp movepos (Piece pc (Pawn (EnPassant eppos))) = c /= pc && elem movepos eppos
@@ -42,6 +48,11 @@ rawGetMoves b (Piece c Mage) p = rawGetMoves b (Piece c Knight) p
 -- Double movers
 rawGetMoves b pie@(Piece _ HookMover) p = doubleMoverN b pie p ud
 rawGetMoves b pie@(Piece _ Empress) p = doubleMoverN b pie p ua
+rawGetMoves b pie@(Piece c Lion) p  = (map mhead $ rawGetMoves b (Piece c King) p) 
+                                  >>= (\x -> map (\y->N [x, mhead y]) $ rawGetMoves (rawSetPiece p Empty b) (Piece c King) x)
+
+rawGetMoves b pie@(Piece c Dragon) p = (rawGetMoves b (Piece c Rook) p) ++ (rawGetMoves b (Piece c Lion) p)
+
 
 -- Cannons
 rawGetMoves b pie@(Piece _ Pao) p = map listify $ uo >>= cannon b pie p
@@ -61,7 +72,11 @@ rawGetMoves b pie@(Piece c General) p = rawGetMoves b (Piece c King) p ++ swaps
         swaps = map listify $ filter ((==) (Piece c King) . getPiece b) $ p >+ [(x,y) | x<-[-2..2], y<-[-2..2]]
 
 rawGetMoves b pie@(Piece c Lance) p = basicFilterSlider b pie p $ [mpb c (0,1)]
-
+rawGetMoves b pie@(Piece c Imitator) p = 
+    filter (\m -> ((getPiece b $ mhead m) == Empty) 
+               || (p `elem` capturableSquares b (getPiece b (mhead m)) (mhead m))) qmoves 
+    where
+        qmoves = rawGetMoves b (Piece c Queen) p
 
 
 -- default piece has no moves
@@ -112,9 +127,14 @@ doMove b pie@(Piece c General) s (N [e]) = if target /= (Piece c King) then norm
     where 
         target = getPiece b e
     
+doMove b pie@(Piece _ Lion) s (N [e1, e2]) = 
+    if getPiece firstMove e1 == pie then secondMove else firstMove where
+    firstMove = normalMove s e1 b
+    secondMove = normalMove e1 e2 firstMove
+
+doMove b (Piece c Dragon) s m@(N [_,_]) = doMove b (Piece c Lion) s m
 
 doMove b _ s (N [e]) = normalMove s e b
 doMove b _ s (MageMove e) = normalMove s e b
 doMove b _ _ _ = b
-
 
