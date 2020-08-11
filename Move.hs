@@ -36,7 +36,7 @@ getMoves b queen@(Piece _ Queen) p = basicFilterSlider b queen p ua
 getMoves b (Piece c Amazon) p = (getMoves b (Piece c Queen) p) ++ (getMoves b (Piece c Knight) p)
 getMoves b (Piece c Cardinal) p = (getMoves b (Piece c Bishop) p) ++ (getMoves b (Piece c Knight) p)
 getMoves b (Piece c Chancellor) p = (getMoves b (Piece c Rook) p) ++ (getMoves b (Piece c Knight) p)
-getMoves b (Piece c Knightmare) p = basicFilterSlider b rook p $ mh (1,2) >>= r4
+getMoves b pie@(Piece _ Knightmare) p = basicFilterSlider b pie p $ mh (1,2) >>= r4
 
 -- Double movers
 getMoves b pie@(Piece _ HookMover) p = doubleMoverN b pie p ud
