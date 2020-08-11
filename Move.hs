@@ -40,8 +40,19 @@ getMoves b pie@(Piece _ Knightmare) p = basicFilterSlider b pie p $ mh (1,2) >>=
 
 -- Double movers
 getMoves b pie@(Piece _ HookMover) p = doubleMoverN b pie p ud
+getMoves b pie@(Piece _ Empress) p = doubleMoverN b pie p ua
+
+-- Cannons
+getMoves b pie@(Piece _ Pao) p = map listify $ uo >>= cannon b pie p
+getMoves b pie@(Piece _ Vao) p = map listify $ ud >>= cannon b pie p
+getMoves b pie@(Piece _ Leo) p = map listify $ ua >>= cannon b pie p
+
+getMoves b pie@(Piece c General) p = getMoves b (Piece c King) p ++ swaps
+    where
+        swaps = map listify $ filter ((==) (Piece c King) . getPiece b) $ p >+ [(x,y) | x<-[-2..2], y<-[-2..2]]
 
 getMoves b pie@(Piece c Lance) p = basicFilterSlider b pie p $ mb c [(0,1)]
+
 
 
 -- default piece has no moves
@@ -77,6 +88,12 @@ doMove b (Piece c Lance) s [e@(x,y)] = promotion end
         end = normalMove s e b
         target = if c == Black then 0 else (size b) - 1
         promotion = if y == target then rawSetPiece e (Piece c Rook) else id
+
+doMove b pie@(Piece c General) s [e] = if target /= (Piece c King) then normalMove s e b else
+    rawSetPieces [(s, target), (e, pie)] b
+    where 
+        target = getPiece b e
+    
 
 doMove b _ s [e] = normalMove s e b
 doMove b _ _ _ = b

@@ -45,6 +45,16 @@ noCapSlider board piece start step
         nextPos = start |+ step
         nextPiece = getPiece board nextPos
 
+firstCap :: Board -> Piece -> Pos -> Pos -> [Pos]
+firstCap board piece start step
+    | nextPiece == Empty = firstCap board piece nextPos step
+    | canCapture piece nextPiece = [nextPos]
+    | otherwise = []
+    where
+        nextPos = start |+ step
+        nextPiece = getPiece board nextPos
+        
+
 basicFilterSlider :: Board -> Piece -> Pos -> [Pos] -> [Move]
 basicFilterSlider board piece pos steps = map listify $ steps >>= basicSlider board piece pos
 
@@ -64,3 +74,11 @@ doubleMoverN board piece start deltas = (map listify . map head . group . sort) 
         firstMoves = start : (deltas >>= noCapSlider board piece start)
         secondMoves = firstMoves >>= (\x -> concat $ map (basicSlider board piece x) deltas)
         moves = filter (/=start) $ firstMoves ++ secondMoves
+
+cannon :: Board -> Piece -> Pos -> Pos -> [Pos]
+cannon board piece start step
+    | nextPiece == Empty = nextPos : cannon board piece nextPos step
+    | otherwise =  firstCap board piece nextPos step
+    where
+        nextPos = start |+ step
+        nextPiece = getPiece board nextPos

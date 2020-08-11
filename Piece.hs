@@ -28,7 +28,7 @@ data PieceType =
            | Knightmare
            | Empress
            | General
-           | Pao | Val | Leo
+           | Pao | Vao | Leo
            | Mage
            | Cobra | Camel | Zebra | Giraffe | Kangaroo
            | Lion
@@ -59,7 +59,7 @@ instance Show PieceType where
     show Empress        = "Em"
     show General        = "G "
     show Pao            = "Pa"
-    show Val            = "Va"
+    show Vao            = "Va"
     show Leo            = "L "
     show Mage           = "M "
     show Cobra          = "Co"
