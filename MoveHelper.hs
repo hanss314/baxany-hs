@@ -9,7 +9,15 @@ import Interactions
 import Data.Function
 import Data.List
 
-type Move = [Pos]
+data Move = N [Pos] | MageMove Pos deriving (Show, Eq)
+
+mmap :: (Pos -> Pos) -> Move -> Move
+mmap f (N xs) = N $ map f xs
+mmap f (MageMove x) = MageMove $ f x 
+
+mfilter :: (Pos -> Bool) -> Move -> Move
+mfilter f (N xs) = N $ filter f xs
+mfilter f (MageMove x) = if f x then MageMove x else N []
 
 mpb :: Color -> Pos -> Pos
 mpb White = id
@@ -17,13 +25,22 @@ mpb Black = (\(x,y)->(x,-y))
 
 mb :: Color -> Move -> Move
 mb White = id
-mb Black = map (\(x,y)->(x,-y)) 
+mb Black = mmap (\(x,y)->(x,-y)) 
 
 mmb :: Color -> [Move] -> [Move]
 mmb c = map (mb c)
 
-listify :: a -> [a]
-listify x = [x]
+mhead :: Move -> Pos
+mhead (MageMove x) = x
+mhead (N (x:_)) = x
+
+mageify :: Move -> Move
+mageify = MageMove . mhead
+
+
+
+listify :: Pos -> Move
+listify x = N [x]
 
 basicFilter :: Board -> Piece -> [Pos] -> [Move]
 basicFilter b p = (map listify . filter (canCapture p . getPiece b))
