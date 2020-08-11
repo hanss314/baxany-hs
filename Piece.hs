@@ -16,7 +16,8 @@ instance Show Color where
     show White = "w"
 
 data PieceType =
-             Pawn PawnState
+             Null
+           | Pawn PawnState
            | Knight
            | Bishop
            | Rook
@@ -86,6 +87,9 @@ data Piece =  Piece !Color !PieceType | Empty | Block
 color :: Piece -> Color
 color (Piece c _) = c
 oc = other . color
+
+getType (Piece _ t) = t
+getType _ = Null
 
 instance Show Piece where
     show (Piece c t) = (show c) ++ (show t)

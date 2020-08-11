@@ -12,7 +12,6 @@ import Data.Function
 import Data.List
 
 capturableSquares :: Board -> Piece -> Pos -> [Pos]
-capturableSquares _ (Piece _ Imitator) _ = []
 capturableSquares board piece pos = 
     (map head . group . sort . filter (canCapture piece . getPiece board) 
               . concat . map toList . rawGetMoves board piece) pos  
@@ -72,9 +71,10 @@ rawGetMoves b pie@(Piece c General) p = rawGetMoves b (Piece c King) p ++ swaps
         swaps = map listify $ filter ((==) (Piece c King) . getPiece b) $ p >+ [(x,y) | x<-[-2..2], y<-[-2..2]]
 
 rawGetMoves b pie@(Piece c Lance) p = basicFilterSlider b pie p $ [mpb c (0,1)]
-rawGetMoves b pie@(Piece c Imitator) p = 
+rawGetMoves b pie@(Piece c Imitator) p =
     filter (\m -> ((getPiece b $ mhead m) == Empty) 
-               || (p `elem` capturableSquares b (getPiece b (mhead m)) (mhead m))) qmoves 
+               || (p `elem` capturableSquares b (getPiece b (mhead m)) (mhead m))) $ 
+    filter (\m -> (getType $ getPiece b $ mhead m) /= Imitator) qmoves 
     where
         qmoves = rawGetMoves b (Piece c Queen) p
 
