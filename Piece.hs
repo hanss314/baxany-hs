@@ -24,6 +24,7 @@ data PieceType =
            | King
            | Amazon | Chancellor | Cardinal
            | HookMover
+           | Lance
            | Knightmare
            | Empress
            | General
@@ -52,7 +53,8 @@ instance Show PieceType where
     show Amazon         = "A " 
     show Chancellor     = "Ch"
     show Cardinal       = "Cn"
-    show HookMover      = "H"
+    show HookMover      = "H "
+    show Lance          = "La"
     show Knightmare     = "Nm"
     show Empress        = "Em"
     show General        = "G "

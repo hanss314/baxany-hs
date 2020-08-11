@@ -7,8 +7,13 @@ import Hooks
 import Interactions
 
 import Data.Function
+import Data.List
 
 type Move = [Pos]
+
+mpb :: Color -> Pos -> Pos
+mpb White = id
+mpb Black = (\(x,y)->(x,-y))
 
 mb :: Color -> Move -> Move
 mb White = id
@@ -34,14 +39,14 @@ basicSlider board piece start step
 
 noCapSlider :: Board -> Piece -> Pos -> Pos -> [Pos]
 noCapSlider board piece start step
-    | nextPiece == Empty = nextPos : basicSlider board piece nextPos step
+    | nextPiece == Empty = nextPos : noCapSlider board piece nextPos step
     | otherwise = []
     where
         nextPos = start |+ step
         nextPiece = getPiece board nextPos
 
 basicFilterSlider :: Board -> Piece -> Pos -> [Pos] -> [Move]
-basicFilterSlider board piece pos steps = basicFilter board piece $ steps >>= basicSlider board piece pos
+basicFilterSlider board piece pos steps = listify $ steps >>= basicSlider board piece pos
 
 normalMove :: Pos -> Pos -> Board -> Board
 normalMove start end b = case getPiece b end of
@@ -53,3 +58,9 @@ nextPawn :: Piece -> [Pos] -> Piece
 nextPawn (Piece c (Pawn Start)) eps = (Piece c (Pawn (EnPassant eps)))
 nextPawn p _ = p
 
+doubleMoverN :: Board -> Piece -> Pos -> [Pos] -> [Move]
+doubleMoverN board piece start deltas = (map listify . map head . group . sort) moves
+    where
+        firstMoves = start : (deltas >>= noCapSlider board piece start)
+        secondMoves = firstMoves >>= (\x -> concat $ map (basicSlider board piece x) deltas)
+        moves = filter (/=start) $ firstMoves ++ secondMoves
