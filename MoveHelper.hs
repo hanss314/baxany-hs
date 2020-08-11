@@ -46,7 +46,7 @@ noCapSlider board piece start step
         nextPiece = getPiece board nextPos
 
 basicFilterSlider :: Board -> Piece -> Pos -> [Pos] -> [Move]
-basicFilterSlider board piece pos steps = listify $ steps >>= basicSlider board piece pos
+basicFilterSlider board piece pos steps = map listify $ steps >>= basicSlider board piece pos
 
 normalMove :: Pos -> Pos -> Board -> Board
 normalMove start end b = case getPiece b end of
