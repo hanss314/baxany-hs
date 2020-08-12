@@ -78,16 +78,32 @@ rawGetMoves b pie@(Piece c Imitator) p =
     where
         qmoves = rawGetMoves b (Piece c Queen) p
 
+rawGetMoves b pie@(Piece c Chariot) p = (map listify basics) ++ carries where
+    getCarries :: Pos -> Pos -> Pos -> [Pos]
+    getCarries char carr step
+        | charNextPiece /= Empty = []
+        | carrNextPiece == Empty = charNextPos : getCarries charNextPos carrNextPos step
+        | canCapture pie carrNextPiece = [charNextPos]
+        | otherwise = []
+        where
+            charNextPos = char |+ step
+            charNextPiece = if carr |- char == step then Empty else getPiece b charNextPos
+            carrNextPos = carr |+ step
+            carrNextPiece = getPiece b carrNextPos
+
+    basics = ua >>= noCapSlider b pie p 
+    carries = (filter (isColor c . getPiece b) $ map (p|+) uo) >>= (\x -> ua >>= (map (CharMove x) . getCarries p x))
 
 -- default piece has no moves
 rawGetMoves _ _ _ = []
 
 getMoves :: Board -> Piece -> Pos -> [Move]
-getMoves board piece@(Piece c _) pos = rawMoves ++ if hasMage then mageBoost else [] where
+getMoves board piece@(Piece c _) pos = rawMoves ++ mageBoost where
     rawMoves = rawGetMoves board piece pos
     hasMage = elem (Piece c Mage) $ map (getPiece board) $ pos >+ ua
-    mageBoost = (map MageMove . filter ((\p -> (p == Empty || canCapture piece p)) . getPiece board) 
+    maybeMageBoost = (map MageMove . filter ((\p -> (p == Empty || canCapture piece p)) . getPiece board) 
                               . filter (not . flip elem rawMoves . listify)) $ pos >+ (mh (1,2) >>= r4)
+    mageBoost = if hasMage then mageBoost else []
     
 getMoves _ _ _ = []
 
@@ -133,7 +149,11 @@ doMove b pie@(Piece _ Lion) s (N [e1, e2]) =
     secondMove = normalMove e1 e2 firstMove
 
 doMove b (Piece c Dragon) s m@(N [_,_]) = doMove b (Piece c Lion) s m
+doMove b pie@(Piece c Chariot) s (CharMove carr e) = 
+    b & rawSetPiece s Empty & (\x -> doMove x (getPiece b carr) carr (N [e |+ carr |- s])) & rawSetPiece e pie
 
+doMove b (Piece c Ghoul) s m@(N [e]) = if getPiece b e == Empty then normalMove s e b else
+    rawSetPieces [(e, Empty), (s, Empty)] b
 doMove b _ s (N [e]) = normalMove s e b
 doMove b _ s (MageMove e) = normalMove s e b
 doMove b _ _ _ = b

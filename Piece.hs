@@ -86,6 +86,11 @@ data Piece =  Piece !Color !PieceType | Empty | Block
 
 color :: Piece -> Color
 color (Piece c _) = c
+
+isColor :: Color -> Piece -> Bool
+isColor c (Piece pc _) = c == pc
+isColor c _ = False
+
 oc = other . color
 
 getType (Piece _ t) = t

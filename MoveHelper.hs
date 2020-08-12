@@ -9,15 +9,17 @@ import Interactions
 import Data.Function
 import Data.List
 
-data Move = N [Pos] | MageMove Pos deriving (Show, Eq)
+data Move = N [Pos] | MageMove Pos | CharMove Pos Pos deriving (Show, Eq)
 
 mmap :: (Pos -> Pos) -> Move -> Move
 mmap f (N xs) = N $ map f xs
 mmap f (MageMove x) = MageMove $ f x 
+mmap f (CharMove char to) = CharMove char $ f to
 
 mfilter :: (Pos -> Bool) -> Move -> Move
 mfilter f (N xs) = N $ filter f xs
 mfilter f (MageMove x) = if f x then MageMove x else N []
+mfilter f m@(CharMove char x) = if f x then m else N []
 
 mpb :: Color -> Pos -> Pos
 mpb White = id
@@ -33,6 +35,7 @@ mmb c = map (mb c)
 mhead :: Move -> Pos
 mhead (MageMove x) = x
 mhead (N (x:_)) = x
+mhead (CharMove _ x) = x
 
 mageify :: Move -> Move
 mageify = MageMove . mhead
