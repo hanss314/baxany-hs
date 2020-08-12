@@ -94,6 +94,9 @@ rawGetMoves b pie@(Piece c Chariot) p = (map listify basics) ++ carries where
     basics = ua >>= noCapSlider b pie p 
     carries = (filter (isColor c . getPiece b) $ map (p|+) uo) >>= (\x -> ua >>= (map (CharMove x) . getCarries p x))
 
+rawGetMoves b (Piece _ Ghoul) p = map listify $ filter (/=p) $ filter ((==Empty) . getPiece b) allBoard where
+    allBoard = [(x,y)|x<-[0..(size b)-1], y<-[0..(size b)-1]]
+
 -- default piece has no moves
 rawGetMoves _ _ _ = []
 
@@ -154,6 +157,7 @@ doMove b pie@(Piece c Chariot) s (CharMove carr e) =
 
 doMove b (Piece c Ghoul) s m@(N [e]) = if getPiece b e == Empty then normalMove s e b else
     rawSetPieces [(e, Empty), (s, Empty)] b
+
 doMove b _ s (N [e]) = normalMove s e b
 doMove b _ s (MageMove e) = normalMove s e b
 doMove b _ _ _ = b
