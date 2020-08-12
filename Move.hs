@@ -11,10 +11,17 @@ import Interactions
 import Data.Function
 import Data.List
 
+isCharMove :: Move -> Bool
+isCharMove (CharMove _ _) = True
+isCharMove _ = False
+
 capturableSquares :: Board -> Piece -> Pos -> [Pos]
-capturableSquares board piece pos = 
-    (map head . group . sort . filter (canCapture piece . getPiece board) 
-              . concat . map toList . rawGetMoves board piece) pos  
+capturableSquares board piece@(Piece c _) pos = (map head . group . sort) $ 
+    (concat . map toList . rawGetMoves board piece) pos ++ chariotMoves where
+    chariotMoves = (filter ((== (Piece c Chariot)) . getPiece board) $ map (pos|+) uo)
+               >>= (\x -> rawGetMoves board (Piece c Chariot) x & filter isCharMove & map (((pos |- x) |+) . mhead))
+
+capturableSquares _ _ _ = []
 
 getEps :: Color -> Board -> Pos -> [Pos]
 getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0..(size board)-1] where
@@ -23,7 +30,7 @@ getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0.
 
 rawGetMoves :: Board -> Piece -> Pos -> [Move]
 -- Pawn
-rawGetMoves b pawn@(Piece c (Pawn m)) p = map listify $ forward ++ second ++ captures  ++ eps where
+rawGetMoves b pawn@(Piece c (Pawn m)) p = map N $ forward ++ second ++ captures  ++ eps where
     forward = filter ((==) Empty . getPiece b) $ map ((p |+) . mpb c) [(0,1)]
     second = if null forward || m /= Start then [] else 
             filter ((==) Empty . getPiece b) $ map ((p |+) . mpb c) [(0,2)]
@@ -48,15 +55,15 @@ rawGetMoves b (Piece c Mage) p = rawGetMoves b (Piece c Knight) p
 rawGetMoves b pie@(Piece _ HookMover) p = doubleMoverN b pie p ud
 rawGetMoves b pie@(Piece _ Empress) p = doubleMoverN b pie p ua
 rawGetMoves b pie@(Piece c Lion) p  = (map mhead $ rawGetMoves b (Piece c King) p) 
-                                  >>= (\x -> map (\y->N [x, mhead y]) $ rawGetMoves (rawSetPiece p Empty b) (Piece c King) x)
+                                  >>= (\x -> map (\y->Chain [x, mhead y]) $ rawGetMoves (rawSetPiece p Empty b) (Piece c King) x)
 
 rawGetMoves b pie@(Piece c Dragon) p = (rawGetMoves b (Piece c Rook) p) ++ (rawGetMoves b (Piece c Lion) p)
 
 
 -- Cannons
-rawGetMoves b pie@(Piece _ Pao) p = map listify $ uo >>= cannon b pie p
-rawGetMoves b pie@(Piece _ Vao) p = map listify $ ud >>= cannon b pie p
-rawGetMoves b pie@(Piece _ Leo) p = map listify $ ua >>= cannon b pie p
+rawGetMoves b pie@(Piece _ Pao) p = map N $ uo >>= cannon b pie p
+rawGetMoves b pie@(Piece _ Vao) p = map N $ ud >>= cannon b pie p
+rawGetMoves b pie@(Piece _ Leo) p = map N $ ua >>= cannon b pie p
 
 -- Knightlikes
 rawGetMoves b pie@(Piece c Cobra) p = basicFilter b pie $ p >+ r4 (2,2)
@@ -68,7 +75,7 @@ rawGetMoves b pie@(Piece c Kangaroo) p = basicFilter b pie $ p >+ (r4 (4,3) >>= 
 -- Other special ones
 rawGetMoves b pie@(Piece c General) p = rawGetMoves b (Piece c King) p ++ swaps
     where
-        swaps = map listify $ filter ((==) (Piece c King) . getPiece b) $ p >+ [(x,y) | x<-[-2..2], y<-[-2..2]]
+        swaps = map N $ filter ((==) (Piece c King) . getPiece b) $ p >+ [(x,y) | x<-[-2..2], y<-[-2..2]]
 
 rawGetMoves b pie@(Piece c Lance) p = basicFilterSlider b pie p $ [mpb c (0,1)]
 rawGetMoves b pie@(Piece c Imitator) p =
@@ -78,7 +85,7 @@ rawGetMoves b pie@(Piece c Imitator) p =
     where
         qmoves = rawGetMoves b (Piece c Queen) p
 
-rawGetMoves b pie@(Piece c Chariot) p = (map listify basics) ++ carries where
+rawGetMoves b pie@(Piece c Chariot) p = (map N basics) ++ carries where
     getCarries :: Pos -> Pos -> Pos -> [Pos]
     getCarries char carr step
         | charNextPiece /= Empty = []
@@ -94,7 +101,7 @@ rawGetMoves b pie@(Piece c Chariot) p = (map listify basics) ++ carries where
     basics = ua >>= noCapSlider b pie p 
     carries = (filter (isColor c . getPiece b) $ map (p|+) uo) >>= (\x -> ua >>= (map (CharMove x) . getCarries p x))
 
-rawGetMoves b (Piece _ Ghoul) p = map listify $ filter (/=p) $ filter ((==Empty) . getPiece b) allBoard where
+rawGetMoves b (Piece _ Ghoul) p = map N $ filter (/=p) $ filter ((==Empty) . getPiece b) allBoard where
     allBoard = [(x,y)|x<-[0..(size b)-1], y<-[0..(size b)-1]]
 
 -- default piece has no moves
@@ -104,8 +111,7 @@ getMoves :: Board -> Piece -> Pos -> [Move]
 getMoves board piece@(Piece c _) pos = rawMoves ++ mageBoost where
     rawMoves = rawGetMoves board piece pos
     hasMage = elem (Piece c Mage) $ map (getPiece board) $ pos >+ ua
-    maybeMageBoost = (map MageMove . filter ((\p -> (p == Empty || canCapture piece p)) . getPiece board) 
-                              . filter (not . flip elem rawMoves . listify)) $ pos >+ (mh (1,2) >>= r4)
+    maybeMageBoost = rawGetMoves board (Piece c Knight) pos
     mageBoost = if hasMage then mageBoost else []
     
 getMoves _ _ _ = []
@@ -124,9 +130,8 @@ doMoveAt b pos move = doMove b (getPiece b pos) pos move
 doMove :: Board -> Piece -> Pos -> Move -> Board
 
 -- Pawn
-doMove b pawn@(Piece c (Pawn _)) s@(x,y) (N m@[e@(mx,my)])
+doMove b pawn@(Piece c (Pawn _)) s@(x,y) (N e@(mx,my))
     | length epsPos > 0 = b & preCapture epCapPie epCap s & normalmove & postCapture epCapPie epCap
-    | x /= mx = capturingMove s e b
     | otherwise = normalmove b
     where
         epsPos = getEps c b e
@@ -135,30 +140,28 @@ doMove b pawn@(Piece c (Pawn _)) s@(x,y) (N m@[e@(mx,my)])
         myeps = [(x,j) | j <- [(min y my)+1..(max y my)-1]]
         normalmove = rawSetPieces $ (e,nextPawn pawn myeps) : (s,Empty) :  map (flip (,) Empty) epsPos
 
-doMove b (Piece c Lance) s (N [e@(x,y)]) = promotion end
+doMove b (Piece c Lance) s (N e@(x,y)) = promotion end
     where
         end = normalMove s e b
         target = if c == Black then 0 else (size b) - 1
         promotion = if y == target then rawSetPiece e (Piece c Rook) else id
 
-doMove b pie@(Piece c General) s (N [e]) = if target /= (Piece c King) then normalMove s e b else
+doMove b pie@(Piece c General) s (N e) = if target /= (Piece c King) then normalMove s e b else
     rawSetPieces [(s, target), (e, pie)] b
     where 
         target = getPiece b e
     
-doMove b pie@(Piece _ Lion) s (N [e1, e2]) = 
+doMove b pie s (Chain [e1, e2]) = 
     if getPiece firstMove e1 == pie then secondMove else firstMove where
     firstMove = normalMove s e1 b
     secondMove = normalMove e1 e2 firstMove
 
-doMove b (Piece c Dragon) s m@(N [_,_]) = doMove b (Piece c Lion) s m
 doMove b pie@(Piece c Chariot) s (CharMove carr e) = 
-    b & rawSetPiece s Empty & (\x -> doMove x (getPiece b carr) carr (MageMove (e |+ carr |- s))) & rawSetPiece e pie
+    b & rawSetPiece s Empty & (\x -> doMove x (getPiece b carr) carr (N (e |+ carr |- s))) & rawSetPiece e pie
 
-doMove b (Piece c Ghoul) s m@(MageMove e) = if getPiece b e == Empty then normalMove s e b else
+doMove b (Piece c Ghoul) s m@(N e) = if getPiece b e == Empty then normalMove s e b else
     rawSetPieces [(e, Empty), (s, Empty)] b
 
-doMove b _ s (N [e]) = normalMove s e b
-doMove b _ s (MageMove e) = normalMove s e b
+doMove b _ s (N e) = normalMove s e b
 doMove b _ _ _ = b
 
