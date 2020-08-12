@@ -153,9 +153,9 @@ doMove b pie@(Piece _ Lion) s (N [e1, e2]) =
 
 doMove b (Piece c Dragon) s m@(N [_,_]) = doMove b (Piece c Lion) s m
 doMove b pie@(Piece c Chariot) s (CharMove carr e) = 
-    b & rawSetPiece s Empty & (\x -> doMove x (getPiece b carr) carr (N [e |+ carr |- s])) & rawSetPiece e pie
+    b & rawSetPiece s Empty & (\x -> doMove x (getPiece b carr) carr (MageMove (e |+ carr |- s))) & rawSetPiece e pie
 
-doMove b (Piece c Ghoul) s m@(N [e]) = if getPiece b e == Empty then normalMove s e b else
+doMove b (Piece c Ghoul) s m@(MageMove e) = if getPiece b e == Empty then normalMove s e b else
     rawSetPieces [(e, Empty), (s, Empty)] b
 
 doMove b _ s (N [e]) = normalMove s e b
