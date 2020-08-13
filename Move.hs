@@ -105,10 +105,11 @@ rawGetMoves b pie@(Piece c Chariot) p = (map N basics) ++ carries ++ mageBoost w
                         (\d -> map (\k->CharMove (p|+d) k) 
                             $ filter (\k -> canCapture pie (getPiece b k) && (canCapture pie $ getPiece b (k |+ d))) 
                             $ p >+ (r4 (1,2) >>= mh))
-    mageBoost = if any (==(Piece c Mage)) $ map (getPiece b . (p|+)) ua then maybeMageBoost else []
+    mageBoost = if any (\x -> x`elem`[Piece c Mage, Piece c (Chameleon Mage)]) $ 
+                            map (getPiece b . (p|+)) ua then maybeMageBoost else []
 
 rawGetMoves b (Piece _ Elephant) p = map Push $ filter ((/=Block) . getPiece b) $ p >+ ua
-
+rawGetMoves b (Piece c (Chameleon t)) p = rawGetMoves b (Piece c t) p
 rawGetMoves b (Piece _ Ghoul) p = map N $ filter (/=p) $ filter ((==Empty) . getPiece b) allBoard where
     allBoard = [(x,y)|x<-[0..(size b)-1], y<-[0..(size b)-1]]
 
@@ -118,7 +119,7 @@ rawGetMoves _ _ _ = []
 getMoves :: Board -> Piece -> Pos -> [Move]
 getMoves board piece@(Piece c _) pos = rawMoves ++ mageBoost where
     rawMoves = rawGetMoves board piece pos
-    hasMage = elem (Piece c Mage) $ map (getPiece board) $ pos >+ ua
+    hasMage = any (\x->x`elem`[Piece c Mage, Piece c (Chameleon Mage)]) $ map (getPiece board) $ pos >+ ua
     maybeMageBoost = rawGetMoves board (Piece c Knight) pos
     mageBoost = if hasMage then maybeMageBoost else []
     
@@ -134,11 +135,23 @@ capturingMove s e b = b & preCapture p e s & rawMovePiece s e & postCapture p e 
 doMoveAt :: Board -> Pos -> Move -> Board
 doMoveAt b pos move = doMove b (getPiece b pos) pos move
 
--- Assume Move is legal here
+applyList :: [a -> a] -> a -> a
+applyList funcs source = foldl' (\x f -> f x) source funcs
+
 doMove :: Board -> Piece -> Pos -> Move -> Board
+doMove b pie pos move = if move `elem` getMoves b pie pos then switch $ final else b where
+    squares = [(x,y) | x<-[0..(size b)-1], y<-[0..(size b)-1]]
+    prefuncs = map (\x -> preMove pie pos (getPiece b x) x) squares
+    pre = applyList prefuncs b
+    moved = rawDoMove pre pie pos move
+    postfuncs = map (\x -> postMove pie pos (getPiece moved x) x) squares
+    final = applyList postfuncs moved
+
+-- Assume Move is legal here
+rawDoMove :: Board -> Piece -> Pos -> Move -> Board
 
 -- Pawn
-doMove b pawn@(Piece c (Pawn _)) s@(x,y) (N e@(mx,my))
+rawDoMove b pawn@(Piece c (Pawn _)) s@(x,y) (N e@(mx,my))
     | length epsPos > 0 = b & preCapture epCapPie epCap s & normalmove & postCapture epCapPie epCap
     | otherwise = normalmove b
     where
@@ -148,29 +161,31 @@ doMove b pawn@(Piece c (Pawn _)) s@(x,y) (N e@(mx,my))
         myeps = [(x,j) | j <- [(min y my)+1..(max y my)-1]]
         normalmove = rawSetPieces $ (e,nextPawn pawn myeps) : (s,Empty) :  map (flip (,) Empty) epsPos
 
-doMove b (Piece c Lance) s (N e@(x,y)) = promotion end
+rawDoMove b (Piece c Lance) s (N e@(x,y)) = promotion end
     where
         end = normalMove s e b
         target = if c == Black then 0 else (size b) - 1
         promotion = if y == target then rawSetPiece e (Piece c Rook) else id
 
-doMove b pie@(Piece c General) s (N e) = if target /= (Piece c King) then normalMove s e b else
+rawDoMove b pie@(Piece c General) s (N e) = if target /= (Piece c King) then normalMove s e b else
     rawSetPieces [(s, target), (e, pie)] b
     where 
         target = getPiece b e
     
-doMove b pie s (Chain [e1, e2]) = 
+rawDoMove b pie s (Chain [e1, e2]) = 
     if getPiece firstMove e1 == pie then secondMove else firstMove where
     firstMove = normalMove s e1 b
     secondMove = normalMove e1 e2 firstMove
 
-doMove b pie@(Piece c Chariot) s (CharMove carr e) = 
-    b & rawSetPiece s Empty & (\x -> doMove x (getPiece b carr) carr (N (e |+ carr |- s))) & rawSetPiece e pie
+rawDoMove b pie@(Piece c Chariot) s (CharMove carr e) = 
+    b & rawSetPiece s Empty & (\x -> rawDoMove x (getPiece b carr) carr (N (e |+ carr |- s))) & rawSetPiece e pie
 
-doMove b (Piece c Ghoul) s m@(N e) = if getPiece b e == Empty then normalMove s e b else
+rawDoMove b (Piece c Ghoul) s m@(N e) = if getPiece b e == Empty then normalMove s e b else
     rawSetPieces [(e, Empty), (s, Empty)] b
 
-doMove b pie s (Push e) = (postCapture (snd capture) e . moved . preCapture (snd capture) (fst capture) s) b where
+rawDoMove b (Piece c (Chameleon t)) s m = rawDoMove b (Piece c t) s m
+
+rawDoMove b pie s (Push e) = (postCapture (snd capture) e . moved . preCapture (snd capture) (fst capture) s) b where
     getPushList :: Pos -> Pos -> [(Pos, Piece)]
     getPushList start step = case getPiece b $ step |+ start of
             Empty -> [(start |+ step, getPiece b start), (start |+ step, Empty)]
@@ -182,6 +197,7 @@ doMove b pie s (Push e) = (postCapture (snd capture) e . moved . preCapture (snd
     moved = rawSetPieces (init pushList)
     capture = B.first (|- delta) $ last pushList
 
-doMove b _ s (N e) = normalMove s e b
-doMove b _ _ _ = b
+
+rawDoMove b _ s (N e) = normalMove s e b
+rawDoMove b _ _ _ = b
 
