@@ -85,7 +85,7 @@ rawGetMoves b pie@(Piece c Imitator) p =
     where
         qmoves = rawGetMoves b (Piece c Queen) p
 
-rawGetMoves b pie@(Piece c Chariot) p = (map N basics) ++ carries where
+rawGetMoves b pie@(Piece c Chariot) p = (map N basics) ++ carries ++ mageBoost where
     getCarries :: Pos -> Pos -> Pos -> [Pos]
     getCarries char carr step
         | charNextPiece /= Empty = []
@@ -100,6 +100,11 @@ rawGetMoves b pie@(Piece c Chariot) p = (map N basics) ++ carries where
 
     basics = ua >>= noCapSlider b pie p 
     carries = (filter (isColor c . getPiece b) $ map (p|+) uo) >>= (\x -> ua >>= (map (CharMove x) . getCarries p x))
+    maybeMageBoost = (filter (isColor c . getPiece b . (p|+)) uo) >>=
+                        (\d -> map (\k->CharMove (p|+d) k) 
+                            $ filter (\k -> canCapture pie (getPiece b k) && (canCapture pie $ getPiece b (k |+ d))) 
+                            $ p >+ (r4 (1,2) >>= mh))
+    mageBoost = if any (==(Piece c Mage)) $ map (getPiece b . (p|+)) ua then maybeMageBoost else []
 
 rawGetMoves b (Piece _ Ghoul) p = map N $ filter (/=p) $ filter ((==Empty) . getPiece b) allBoard where
     allBoard = [(x,y)|x<-[0..(size b)-1], y<-[0..(size b)-1]]
@@ -112,7 +117,7 @@ getMoves board piece@(Piece c _) pos = rawMoves ++ mageBoost where
     rawMoves = rawGetMoves board piece pos
     hasMage = elem (Piece c Mage) $ map (getPiece board) $ pos >+ ua
     maybeMageBoost = rawGetMoves board (Piece c Knight) pos
-    mageBoost = if hasMage then mageBoost else []
+    mageBoost = if hasMage then maybeMageBoost else []
     
 getMoves _ _ _ = []
 
