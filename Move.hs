@@ -10,6 +10,7 @@ import Interactions
 
 import Data.Function
 import Data.List
+import qualified Data.Bifunctor as B
 
 isCharMove :: Move -> Bool
 isCharMove (CharMove _ _) = True
@@ -106,6 +107,8 @@ rawGetMoves b pie@(Piece c Chariot) p = (map N basics) ++ carries ++ mageBoost w
                             $ p >+ (r4 (1,2) >>= mh))
     mageBoost = if any (==(Piece c Mage)) $ map (getPiece b . (p|+)) ua then maybeMageBoost else []
 
+rawGetMoves b (Piece _ Elephant) p = map Push $ filter ((/=Block) . getPiece b) $ p >+ ua
+
 rawGetMoves b (Piece _ Ghoul) p = map N $ filter (/=p) $ filter ((==Empty) . getPiece b) allBoard where
     allBoard = [(x,y)|x<-[0..(size b)-1], y<-[0..(size b)-1]]
 
@@ -166,6 +169,18 @@ doMove b pie@(Piece c Chariot) s (CharMove carr e) =
 
 doMove b (Piece c Ghoul) s m@(N e) = if getPiece b e == Empty then normalMove s e b else
     rawSetPieces [(e, Empty), (s, Empty)] b
+
+doMove b pie s (Push e) = (postCapture (snd capture) e . moved . preCapture (snd capture) (fst capture) s) b where
+    getPushList :: Pos -> Pos -> [(Pos, Piece)]
+    getPushList start step = case getPiece b $ step |+ start of
+            Empty -> [(start |+ step, getPiece b start), (start |+ step, Empty)]
+            Block -> [(start, getPiece b start)]
+            _ -> (start |+ step, getPiece b start) : getPushList (start |+ step) step
+
+    delta = e |- s
+    pushList = (s, Empty) :  getPushList s delta
+    moved = rawSetPieces (init pushList)
+    capture = B.first (|- delta) $ last pushList
 
 doMove b _ s (N e) = normalMove s e b
 doMove b _ _ _ = b
