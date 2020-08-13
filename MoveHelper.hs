@@ -9,37 +9,28 @@ import Interactions
 import Data.Function
 import Data.List
 
-data Move = N Pos | CharMove Pos Pos | Chain [Pos] | Push Pos deriving (Show, Eq)
-
-mmap :: (Pos -> Pos) -> Move -> Move
-mmap f (Chain xs) = Chain $ map f xs
-mmap f (N x) = N $ f x 
-mmap f (CharMove char to) = CharMove char $ f to
-mmap f (Push x) = Push $ f x
+data Move = N Pos | PawnMove Pos | CharMove Pos Pos | Chain [Pos] | Push Pos | Throw Pos Pos deriving (Show, Eq)
 
 
 mpb :: Color -> Pos -> Pos
 mpb White = id
 mpb Black = (\(x,y)->(x,-y))
 
-mb :: Color -> Move -> Move
-mb White = id
-mb Black = mmap (\(x,y)->(x,-y)) 
-
-mmb :: Color -> [Move] -> [Move]
-mmb c = map (mb c)
-
 mhead :: Move -> Pos
 mhead (N x) = x
 mhead (Chain xs) = last xs
 mhead (CharMove _ x) = x
 mhead (Push x) = x
+mhead (Throw _ x) = x
+mhead (PawnMove x) = x
 
 toList :: Move -> [Pos]
 toList (N x) = [x]
 toList (Chain xs) = xs
-toList (CharMove _ x) = [x]
+toList (CharMove _ x) = []
+toList (Throw _ x) = [x]
 toList (Push x) = [x]
+toList (PawnMove x) = [x]
 
 basicFilter :: Board -> Piece -> [Pos] -> [Move]
 basicFilter b p = (map N . filter (canCapture p . getPiece b))

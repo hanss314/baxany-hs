@@ -22,13 +22,14 @@ preMove :: Piece -> Pos -> Piece -> Pos -> Board -> Board
 preMove _ _ _ _ b = b
 
 simpType :: PieceType -> PieceType
-simpType (Pawn _) = (Pawn Normal)
-simpType (Ace _) = (Ace 0)
+simpType (Pawn _) = (Pawn Cham)
+simpType (Ace _) = (Ace -10)
 simpType (Chameleon t) = simpType t
 simpType x = x
 
 postMove :: Piece -> Pos -> Piece -> Pos -> Board -> Board
 postMove (Piece mc typ) _ (Piece hc (Chameleon _)) pos b = if mc == hc then b else 
     rawSetPiece pos (Piece hc (Chameleon $ simpType typ)) b
+
 postMove _ _ _ _ b = b
 

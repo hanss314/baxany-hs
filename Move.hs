@@ -10,6 +10,7 @@ import Interactions
 
 import Data.Function
 import Data.List
+import Data.Bool
 import qualified Data.Bifunctor as B
 
 isCharMove :: Move -> Bool
@@ -31,7 +32,7 @@ getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0.
 
 rawGetMoves :: Board -> Piece -> Pos -> [Move]
 -- Pawn
-rawGetMoves b pawn@(Piece c (Pawn m)) p = map N $ forward ++ captures  ++ eps where
+rawGetMoves b pawn@(Piece c (Pawn m)) p = map (bool N PawnMove (m == Start)) $ forward ++ captures  ++ eps where
     forward = if m == Start then limitedSlider 3 b pawn p $ mpb c (0,1) else
                     filter ((==) Empty . getPiece b) $ map ((p |+) . mpb c) [(0,1)]
     captures = filter (canCapture pawn . getPiece b) $ map ((p |+) . mpb c) [(1,1), (-1,1)]
@@ -156,15 +157,15 @@ doMove b pie pos move = if move `elem` getMoves b pie pos then switch $ final el
 rawDoMove :: Board -> Piece -> Pos -> Move -> Board
 
 -- Pawn
-rawDoMove b pawn@(Piece c (Pawn _)) s@(x,y) (N e@(mx,my))
-    | length epsPos > 0 = b & preCapture epCapPie epCap s & normalmove & postCapture epCapPie epCap
-    | otherwise = normalmove b
+rawDoMove b pawn@(Piece c (Pawn _)) s@(x,y) (PawnMove e@(mx,my)) = rawSetPieces ((e, Piece c nextPawn) : (s,Empty) : eps) b
     where
-        epsPos = getEps c b e
-        epCap = head epsPos
-        epCapPie = getPiece b epCap
-        myeps = [(x,j) | j <- [(min y my)+1..(max y my)-1]]
-        normalmove = rawSetPieces $ (e,nextPawn pawn myeps) : (s,Empty) :  map (flip (,) Empty) epsPos
+        nextPawn = if (abs (y-my)) /= 3 then (Pawn Normal) else
+                Pawn (EnPassant [(x,j) | j <- [(min y my)+1..(max y my)-1]])
+        isPawn (Piece c (Pawn _)) = True
+        isPawn _ = False
+        getList (Piece c (Pawn (EnPassant xs))) = xs
+        getList _= []
+        eps = map (flip (,) Empty) $ filter ((\p -> isPawn p && (elem e $ getList p)) . getPiece b) [(mx, j) | j<-[0..size b]]
 
 rawDoMove b (Piece c Lance) s (N e@(x,y)) = promotion end
     where
@@ -210,6 +211,13 @@ rawDoMove b pie s (Push e) = (postCapture (snd capture) e . moved . preCapture (
     moved = rawSetPieces (init pushList)
     capture = B.first (|- delta) $ last pushList
 
+rawDoMove b pawn@(Piece c (Pawn _)) s@(x,y) (N e@(mx,my)) = b & rawSetPieces eps & normalMove s e
+    where
+        isPawn (Piece c (Pawn _)) = True
+        isPawn _ = False
+        getList (Piece c (Pawn (EnPassant xs))) = xs
+        getList _= []
+        eps = map (flip (,) Empty) $ filter ((\p -> isPawn p && (elem e $ getList p)) . getPiece b) [(mx, j) | j<-[0..size b]]
 
 rawDoMove b _ s (N e) = normalMove s e b
 rawDoMove b _ _ _ = b

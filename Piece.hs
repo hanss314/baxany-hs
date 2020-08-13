@@ -5,7 +5,7 @@ import Pos (Pos)
 data Color = Black | White
    deriving (Eq)
 
-data PawnState = Start | EnPassant [Pos] | Normal deriving Eq
+data PawnState = Start | EnPassant [Pos] | Normal | Cham deriving Eq
 
 other :: Color -> Color
 other White = Black
