@@ -31,10 +31,9 @@ getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0.
 
 rawGetMoves :: Board -> Piece -> Pos -> [Move]
 -- Pawn
-rawGetMoves b pawn@(Piece c (Pawn m)) p = map N $ forward ++ second ++ captures  ++ eps where
-    forward = filter ((==) Empty . getPiece b) $ map ((p |+) . mpb c) [(0,1)]
-    second = if null forward || m /= Start then [] else 
-            filter ((==) Empty . getPiece b) $ map ((p |+) . mpb c) [(0,2)]
+rawGetMoves b pawn@(Piece c (Pawn m)) p = map N $ forward ++ captures  ++ eps where
+    forward = if m == Start then limitedSlider 3 b pawn p $ mpb c (0,1) else
+                    filter ((==) Empty . getPiece b) $ map ((p |+) . mpb c) [(0,1)]
     captures = filter (canCapture pawn . getPiece b) $ map ((p |+) . mpb c) [(1,1), (-1,1)]
     eps = filter (not . null . getEps c b) $ map ((p |+) . mpb c) [(1,1), (-1,1)]
 
@@ -117,6 +116,7 @@ rawGetMoves b (Piece _ Ghoul) p = map N $ filter (/=p) $ filter ((==Empty) . get
 rawGetMoves b (Piece c (Ace _)) p = rawGetMoves b (Piece c King) p
 rawGetMoves b pie@(Piece _ Jack) p = basicFilter b pie $ map (B.first (`mod` (size b))) $ p >+ deltas where
     deltas = [(x,y) | x<-[-2..2], y<-[-2..2], x/=0 || y/=0]
+
 
 -- default piece has no moves
 rawGetMoves _ _ _ = []

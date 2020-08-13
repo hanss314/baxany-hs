@@ -44,6 +44,9 @@ toList (Push x) = [x]
 basicFilter :: Board -> Piece -> [Pos] -> [Move]
 basicFilter b p = (map N . filter (canCapture p . getPiece b))
 
+limitedSlider :: Int -> Board -> Piece -> Pos -> Pos -> [Pos]
+limitedSlider n b p s d = take n $ noCapSlider b p s d
+
 basicSlider :: Board -> Piece -> Pos -> Pos -> [Pos]
 basicSlider board piece start step
     | nextPiece == Empty = nextPos : basicSlider board piece nextPos step
