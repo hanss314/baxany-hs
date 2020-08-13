@@ -55,6 +55,7 @@ rawGetMoves b (Piece c Mage) p = rawGetMoves b (Piece c Knight) p
 -- Double movers
 rawGetMoves b pie@(Piece _ HookMover) p = doubleMoverN b pie p ud
 rawGetMoves b pie@(Piece _ Empress) p = doubleMoverN b pie p ua
+rawGetMoves b pie@(Piece _ Joker) p = doubleMoverN b pie p (r4 (1,2) >>= mh)
 rawGetMoves b pie@(Piece c Lion) p  = (map mhead $ rawGetMoves b (Piece c King) p) 
                                   >>= (\x -> map (\y->Chain [x, mhead y]) $ rawGetMoves (rawSetPiece p Empty b) (Piece c King) x)
 
