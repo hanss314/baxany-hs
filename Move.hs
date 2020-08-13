@@ -113,6 +113,8 @@ rawGetMoves b (Piece c (Chameleon t)) p = rawGetMoves b (Piece c t) p
 rawGetMoves b (Piece _ Ghoul) p = map N $ filter (/=p) $ filter ((==Empty) . getPiece b) allBoard where
     allBoard = [(x,y)|x<-[0..(size b)-1], y<-[0..(size b)-1]]
 
+rawGetMoves b (Piece c (Ace _)) p = rawGetMoves b (Piece c King) p
+
 -- default piece has no moves
 rawGetMoves _ _ _ = []
 
@@ -184,6 +186,14 @@ rawDoMove b (Piece c Ghoul) s m@(N e) = if getPiece b e == Empty then normalMove
     rawSetPieces [(e, Empty), (s, Empty)] b
 
 rawDoMove b (Piece c (Chameleon t)) s m = rawDoMove b (Piece c t) s m
+rawDoMove b (Piece c (Ace i)) s (N e) = normalMove s e updated where
+    promotable (Piece _ Empress) = 10
+    promotable (Piece _ (Pawn _)) = 0
+    promotable (Piece _ _) = 1
+    promotable _ = 0
+    ni = i + (promotable $ getPiece b e)
+    newPiece = if ni < 10 then (Piece c (Ace ni)) else (Piece c Joker)
+    updated = rawSetPiece s newPiece b
 
 rawDoMove b pie s (Push e) = (postCapture (snd capture) e . moved . preCapture (snd capture) (fst capture) s) b where
     getPushList :: Pos -> Pos -> [(Pos, Piece)]
