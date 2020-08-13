@@ -115,6 +115,8 @@ rawGetMoves b (Piece _ Ghoul) p = map N $ filter (/=p) $ filter ((==Empty) . get
     allBoard = [(x,y)|x<-[0..(size b)-1], y<-[0..(size b)-1]]
 
 rawGetMoves b (Piece c (Ace _)) p = rawGetMoves b (Piece c King) p
+rawGetMoves b pie@(Piece _ Jack) p = basicFilter b pie $ map (B.first (`mod` (size b))) $ p >+ deltas where
+    deltas = [(x,y) | x<-[-2..2], y<-[-2..2], x/=0 || y/=0]
 
 -- default piece has no moves
 rawGetMoves _ _ _ = []
