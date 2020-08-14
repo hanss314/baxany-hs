@@ -33,7 +33,7 @@ getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0.
 rawGetMoves :: Board -> Piece -> Pos -> [Move]
 -- Pawn
 rawGetMoves b pawn@(Piece c (Pawn m)) p = map (bool N PawnMove (m == Start)) $ forward ++ captures  ++ eps where
-    forward = if m == Start then limitedSlider 3 b pawn p $ mpb c (0,1) else
+    forward = if m == Start then limitedSlider 3 b p $ mpb c (0,1) else
                     filter ((==) Empty . getPiece b) $ map ((p |+) . mpb c) [(0,1)]
     captures = filter (canCapture pawn . getPiece b) $ map ((p |+) . mpb c) [(1,1), (-1,1)]
     eps = filter (not . null . getEps c b) $ map ((p |+) . mpb c) [(1,1), (-1,1)]
@@ -57,7 +57,8 @@ rawGetMoves b pie@(Piece _ HookMover) p = doubleMoverN b pie p ud
 rawGetMoves b pie@(Piece _ Empress) p = doubleMoverN b pie p ua
 rawGetMoves b pie@(Piece _ Joker) p = doubleMoverN b pie p (r4 (1,2) >>= mh)
 rawGetMoves b pie@(Piece c Lion) p  = (map mhead $ rawGetMoves b (Piece c King) p) 
-                                  >>= (\x -> map (\y->Chain [x, mhead y]) $ rawGetMoves (rawSetPiece p Empty b) (Piece c King) x)
+                                  >>= (\x -> (:) (N x) $ map (\y->Chain [x, mhead y]) 
+                                           $ rawGetMoves (rawSetPiece p Empty b) (Piece c King) x)
 
 rawGetMoves b pie@(Piece c Dragon) p = (rawGetMoves b (Piece c Rook) p) ++ (rawGetMoves b (Piece c Lion) p)
 
@@ -100,7 +101,7 @@ rawGetMoves b pie@(Piece c Chariot) p = (map N basics) ++ carries ++ mageBoost w
             carrNextPos = carr |+ step
             carrNextPiece = getPiece b carrNextPos
 
-    basics = ua >>= noCapSlider b pie p 
+    basics = ua >>= noCapSlider b p 
     carries = (filter (isColor c . getPiece b) $ map (p|+) uo) >>= (\x -> ua >>= (map (CharMove x) . getCarries p x))
     maybeMageBoost = (filter (isColor c . getPiece b . (p|+)) uo) >>=
                         (\d -> map (\k->CharMove (p|+d) k) 
@@ -118,6 +119,15 @@ rawGetMoves b (Piece c (Ace _)) p = rawGetMoves b (Piece c King) p
 rawGetMoves b pie@(Piece _ Jack) p = basicFilter b pie $ map (B.first (`mod` (size b))) $ p >+ deltas where
     deltas = [(x,y) | x<-[-2..2], y<-[-2..2], x/=0 || y/=0]
 
+rawGetMoves b pie@(Piece c Trebuchet) p = rawGetMoves b (Piece c Elephant) p ++ throws where
+    throws = (filter ((/=Null) . getType . getPiece b) $ p >+ uo)
+         >>= (\pos -> map (Throw pos) $ filter (not . isColor c . getPiece b) $ 
+                        filter ((/=Block) . getPiece b) $ pos >+ map (mpb c . ((,) 0)) [1..5])
+
+rawGetMoves b pie@(Piece c Gryphon) p = steps ++ pushes where
+    steps = basicFilter b pie [p|+(x,y) | x<-[-2..2], y<-[-2..2], x/=0 || y/=0]
+    pushes = filter (isColor (other c) . getPiece b . (p|+) . (3|*)) ua >>= (\x -> 
+                map (Throw (3|*x|+p)) $ limitedSlider 3 b (3|*x|+p) x)
 
 -- default piece has no moves
 rawGetMoves _ _ _ = []
@@ -210,6 +220,9 @@ rawDoMove b pie s (Push e) = (postCapture (snd capture) e . moved . preCapture (
     pushList = (s, Empty) :  getPushList s delta
     moved = rawSetPieces (init pushList)
     capture = B.first (|- delta) $ last pushList
+
+rawDoMove b (Piece _ Gryphon) _ (Throw s e) = normalMove s e b
+rawDoMove b (Piece _ Trebuchet) _ (Throw s e) = rawDoMove b (getPiece b s) s (N e)
 
 rawDoMove b pawn@(Piece c (Pawn _)) s@(x,y) (N e@(mx,my)) = b & rawSetPieces eps & normalMove s e
     where

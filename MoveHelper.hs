@@ -35,8 +35,8 @@ toList (PawnMove x) = [x]
 basicFilter :: Board -> Piece -> [Pos] -> [Move]
 basicFilter b p = (map N . filter (canCapture p . getPiece b))
 
-limitedSlider :: Int -> Board -> Piece -> Pos -> Pos -> [Pos]
-limitedSlider n b p s d = take n $ noCapSlider b p s d
+limitedSlider :: Int -> Board -> Pos -> Pos -> [Pos]
+limitedSlider n b s d = take n $ noCapSlider b s d
 
 basicSlider :: Board -> Piece -> Pos -> Pos -> [Pos]
 basicSlider board piece start step
@@ -47,9 +47,9 @@ basicSlider board piece start step
         nextPos = start |+ step
         nextPiece = getPiece board nextPos
 
-noCapSlider :: Board -> Piece -> Pos -> Pos -> [Pos]
-noCapSlider board piece start step
-    | nextPiece == Empty = nextPos : noCapSlider board piece nextPos step
+noCapSlider :: Board -> Pos -> Pos -> [Pos]
+noCapSlider board start step
+    | nextPiece == Empty = nextPos : noCapSlider board nextPos step
     | otherwise = []
     where
         nextPos = start |+ step
@@ -74,16 +74,13 @@ normalMove start end b = case getPiece b end of
     Empty -> rawMovePiece start end b
     x -> b & preCapture x end start & rawMovePiece start end & postCapture x end
 
-nextPawn :: Piece -> [Pos] -> Piece
-nextPawn (Piece c (Pawn Start)) eps = (Piece c (Pawn (EnPassant eps)))
-nextPawn p _ = p
-
 doubleMoverN :: Board -> Piece -> Pos -> [Pos] -> [Move]
 doubleMoverN board piece start deltas = (map (N . head) . group . sort) moves
     where
-        firstMoves = start : (deltas >>= noCapSlider board piece start)
+        firstMoves = start : (deltas >>= noCapSlider board start)
         secondMoves = firstMoves >>= (\x -> concat $ map (basicSlider board piece x) deltas)
-        moves = filter (/=start) $ firstMoves ++ secondMoves
+        capMoves = filter (not . flip elem firstMoves) $ deltas >>= basicSlider board piece start
+        moves = filter (/=start) $ firstMoves ++ secondMoves ++ capMoves
 
 cannon :: Board -> Piece -> Pos -> Pos -> [Pos]
 cannon board piece start step
