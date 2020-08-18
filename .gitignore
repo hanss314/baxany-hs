@@ -1,3 +1,4 @@
 build
 *.hi
 *.o
+cleanbuild
