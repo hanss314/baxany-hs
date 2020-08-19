@@ -1,0 +1,57 @@
+name:                baxanyhs
+version:             0.1.0.0
+github:              "hanss314/baxany-hs"
+license:             BSD3
+author:              "hanss314"
+maintainer:          "hanss314@github.com"
+copyright:           "2020 hanss314"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/hanss314/baxany-hs#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- vector
+- wai
+- warp
+- json
+- blaze-builder
+- bytestring
+- http-types
+- utf8-string
+
+library:
+  source-dirs: src
+
+executables:
+  baxanyhs-exe:
+    main:                Server.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -optl-static
+    dependencies:
+    - baxanyhs
+
+tests:
+  baxanyhs-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - baxanyhs
