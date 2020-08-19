@@ -14,7 +14,7 @@ data Board = Board {
      -- | Player making the next move.
    , turn :: !Color
    , size :: !Int
-   }
+   } deriving (Eq)
 
 switch :: Board -> Board
 switch !board = board { 
