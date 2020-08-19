@@ -1,3 +1,5 @@
+module Json where
+
 import Text.JSON
 import Text.JSON.Types
 import qualified Data.Vector as V
@@ -86,3 +88,33 @@ instance JSON PawnState where
             _ -> Error "Invalid pawnstate"
 
     readJSON _ = Error "PawnState must be object"
+
+instance JSON Move where
+    showJSON (N x)         = l2o [("type", showJSON (0 :: Int)), ("pos", showJSON x)]
+    showJSON (PawnMove x)  = l2o [("type", showJSON (1 :: Int)), ("pos", showJSON x)]
+    showJSON (Push x)      = l2o [("type", showJSON (2 :: Int)), ("pos", showJSON x)]
+    
+    showJSON (Chain xs)    = l2o [("type", showJSON (3 :: Int)), ("pos", showJSON xs)] 
+
+    showJSON (CharMove p e) = l2o [("type", showJSON (4 :: Int)), ("pos", showJSON (p,e))] 
+    showJSON (Throw s e)    = l2o [("type", showJSON (5 :: Int)), ("pos", showJSON (s,e))]
+
+    readJSON (JSObject obj) = do
+        t <- (get_result obj "type" >>= readJSON) :: Result Int
+        case t of
+            0 -> get_result obj "pos" >>= readJSON >>= (return . N)
+            1 -> get_result obj "pos" >>= readJSON >>= (return . PawnMove)
+            2 -> get_result obj "pos" >>= readJSON >>= (return . Push)
+            3 -> get_result obj "pos" >>= readJSON >>= (return . Chain)
+            4 -> get_result obj "pos" >>= readJSON >>= (return . uncurry CharMove)
+            5 -> get_result obj "pos" >>= readJSON >>= (return . uncurry Throw)
+
+    readJSON _ = Error "Move must be object"
+
+
+data MovePair = MovePair (Int, Int) Move deriving Eq
+
+instance JSON MovePair where
+    showJSON (MovePair x m) = showJSON (x, m)
+    readJSON x = readJSON x >>= (return . uncurry MovePair)
+
