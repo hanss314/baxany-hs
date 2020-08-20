@@ -3,12 +3,21 @@ body {
 }
 
 #chessboard{
+    float: left;
     width: 1024px;
     height: 1024px;
-    margin: auto;
+    left:10px;
+    top:10px;
+    margin: 20px;
     border: 5px solid #333;
     display: grid;
     grid-template-columns: repeat(16, 1fr);
+}
+
+#turn{
+   margin: 20px;
+   float: left;
+   font-size: 40px;
 }
 
 .black {

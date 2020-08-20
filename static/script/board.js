@@ -40,8 +40,9 @@ function drawPieces(pieces){
 
 function getBoardState(){
     $.getJSON("board/json").done((data) => {
+        $('#turn').text('Turn: '+(data.turn?"Black":"White"));
         drawPieces(data.board);
     });
 }
 
-getBoardState();
+setInterval(getBoardState, 1000);
