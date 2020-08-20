@@ -22,7 +22,6 @@ function drawPieces(pieces){
     for(let i=0; i<size; i++){
         for(let j=0; j<size; j++){
             let piece = pieces[j*size+i];
-            console.log(piece);
             let img;
             if(piece.type != 1){
                 img = "none";
