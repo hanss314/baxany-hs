@@ -70,11 +70,9 @@ instance Show Board where
 regularChess :: Board
 regularChess = rawSetPieces [((x,y), Piece (if y==1 then White else Black) (Pawn Start)) | x<-[0..7], y<-[1,6]] $ emptyBoard 8
 
-blackback = [
+back = [
     Lance, Lion, Jack, Ace 0, Chariot, Knightmare, Amazon, Empress, 
     King, Amazon, Knightmare, Chariot, Ace 0, Jack, Lion, Lance]
-
-whiteback = reverse blackback
 
 secondrow = [
     Chancellor, Dragon, Chameleon Null, Elephant, Trebuchet, Leo, Queen, HookMover] & (\x -> x ++ reverse x)
@@ -89,8 +87,8 @@ pawns = take 16 $ repeat (Pawn Start)
 
 centre = take (6*16) $ repeat Empty
 
-whites = map (Piece White) $ whiteback ++ secondrow ++ thirdrow ++ fourthrow ++ pawns
-blacks = map (Piece Black) $ pawns ++ fourthrow ++ thirdrow ++ secondrow ++ blackback
+whites = map (Piece White) $ back ++ secondrow ++ thirdrow ++ fourthrow ++ pawns
+blacks = map (Piece Black) $ pawns ++ fourthrow ++ thirdrow ++ secondrow ++ back
 
 baxanyList = whites ++ centre ++ blacks
 
