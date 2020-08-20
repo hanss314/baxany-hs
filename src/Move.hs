@@ -207,7 +207,9 @@ rawDoMove b (Piece c (Ace i)) s (N e) = normalMove s e updated where
     promotable (Piece _ _) = 1
     promotable _ = 0
     ni = i + (promotable $ getPiece b e)
-    newPiece = if ni < 10 then (Piece c (Ace ni)) else (Piece c Joker)
+    newPiece = if i == -1 then (Piece c (Chameleon (Ace -1)))
+               else if ni < 10 then (Piece c (Ace ni)) 
+               else (Piece c Joker)
     updated = rawSetPiece s newPiece b
 
 rawDoMove b pie s (Push e) = (postCapture (snd capture) e . moved . preCapture (snd capture) (fst capture) s) b where
