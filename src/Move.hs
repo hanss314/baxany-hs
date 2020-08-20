@@ -133,10 +133,11 @@ rawGetMoves b pie@(Piece c Gryphon) p = steps ++ pushes where
 rawGetMoves _ _ _ = []
 
 getMoves :: Board -> Piece -> Pos -> [Move]
-getMoves board piece@(Piece c _) pos = rawMoves ++ mageBoost where
+getMoves board piece@(Piece c t) pos = rawMoves ++ mageBoost where
     rawMoves = rawGetMoves board piece pos
     hasMage = any (\x->x`elem`[Piece c Mage, Piece c (Chameleon Mage)]) $ map (getPiece board) $ pos >+ ua
-    maybeMageBoost = rawGetMoves board (Piece c Knight) pos
+    rawMageBoost = rawGetMoves board (Piece c Knight) pos
+    maybeMageBoost = if t == (Pawn Start) then map (PawnMove . mhead) rawMageBoost else rawMageBoost
     mageBoost = if hasMage then maybeMageBoost else []
     
 getMoves _ _ _ = []
