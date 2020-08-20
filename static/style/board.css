@@ -20,13 +20,38 @@ body {
    font-size: 40px;
 }
 
+.black.green{
+    background-color: #181;
+}
+
+.white.green {
+    background-color: #1e1;
+}
+
+.black.blue{
+    background-color: #33e;
+}
+
+.white.blue {
+    background-color: #88e;
+}
+
+.black.blue.green{
+    background-color: #3ee;
+}
+
+.white.blue.green{
+    background-color: #8ee;
+}
+
 .black {
     background-color: black;
 }
 
 .white {
-    background-color: eee;
+    background-color: #eee;
 }
+
 
 .cell {
     float: left;
