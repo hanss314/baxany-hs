@@ -1,0 +1,27 @@
+body {
+    background-color: #888;
+}
+
+#chessboard{
+    width: 1024px;
+    height: 1024px;
+    margin: auto;
+    border: 5px solid #333;
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+}
+
+.black {
+    background-color: black;
+}
+
+.white {
+    background-color: eee;
+}
+
+.cell {
+    float: left;
+    height: 64px;
+    width: 64px;
+    display: table-cell
+}

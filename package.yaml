@@ -29,7 +29,8 @@ dependencies:
 - bytestring
 - http-types
 - utf8-string
-
+- text
+- mime-types
 library:
   source-dirs: src
 
@@ -41,7 +42,6 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -optl-static
     dependencies:
     - baxanyhs
 
