@@ -70,7 +70,14 @@ function makeMove(start, move){
         board = data;
     });
     setLastHighlight(toSend);
-    let data = doMove(board, toSend);
+    let either = doMove(board, toSend);
+    if ('Left' in either){
+        alert(either.Left);
+        selected = [-1,-1];
+        choosable = [-1, -1];
+        return;
+    }
+    let data = either.Right;
     $('#turn').text('Turn: '+(data.turn?"Black":"White"));
     drawPieces(data.board);
     board = data;
@@ -202,4 +209,5 @@ function getBoardState(){
     });
 }
 
-setInterval(getBoardState, 1000);
+getBoardState();
+setInterval(getBoardState, 5000);

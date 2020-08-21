@@ -10,7 +10,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Internal as B (c2w, w2c)
 import Data.Monoid
 import Data.IORef
-import Data.Maybe
+import Data.Either
 import System.IO
 import qualified Data.Text as T
 import Text.JSON
@@ -78,9 +78,9 @@ respondWithMove state smoves respond req cb = do
     case rmove of
         Error x -> respond $ responseBuilder status401 plainresp $ copyByteString $ BU.fromString x
         Ok move@(p, m) -> do
-            result <- atomicModifyIORef' state (\b -> (fromMaybe b $ doMoveAt b p m, doMoveAt b p m))
-            if isNothing result 
-            then respond $ responseBuilder status401 plainresp "Invalid move"
+            result <- atomicModifyIORef' state (\b -> (fromRight b $ doMoveAt b p m, doMoveAt b p m))
+            if isLeft result 
+            then respond $ responseBuilder status401 plainresp $ copyByteString $ BU.fromString $ fromLeft "" result
             else do 
                 atomicModifyIORef' smoves (\ms -> (move:ms, ()))
                 cb state respond

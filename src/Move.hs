@@ -150,27 +150,34 @@ capturingMove :: Pos -> Pos -> Board -> Board
 capturingMove s e b = b & preCapture p e s & rawMovePiece s e & postCapture p e where
     p = getPiece b e
 
-doMoveAt :: Board -> Pos -> Move -> Maybe Board
+doMoveAt :: Board -> Pos -> Move -> Either String Board
 doMoveAt b pos move = doMove b (getPiece b pos) pos move
 
 applyList :: [a -> a] -> a -> a
 applyList funcs source = foldl' (\x f -> f x) source funcs
 
-doMove :: Board -> Piece -> Pos -> Move -> Maybe Board
-doMove b pie pos move = if valid then Just (switch $ final) else Nothing where
+doMove :: Board -> Piece -> Pos -> Move -> Either String Board
+doMove b pie pos move = if not valid then Left "Invalid Move"
+                        else if not $ null check then Left ("Check from " <> show check) 
+                        else Right final where
     valid = (elem move $ getMoves b pie pos) && (isColor (turn b) $ getPiece b pos)
     squares = [(x,y) | x<-[0..(size b)-1], y<-[0..(size b)-1]]
     prefuncs = map (\x -> preMove pie pos (getPiece b x) x) squares
     pre = applyList prefuncs b
     moved = rawDoMove pre pie pos move
     postfuncs = map (\x -> postMove pie pos (getPiece moved x) x) squares
-    final = applyList postfuncs moved
+    final = switch $ applyList postfuncs moved
+    allSquares = [(x,y) | x<-[0..(size b)-1], y<-[0..(size b)-1]]
+    king = head $ filter ((==(Piece (turn b) King)) . getPiece final) allSquares 
+    check = filter (isColor (other $ turn b) . getPiece final) allSquares 
+          & filter (\x -> elem king $ capturableSquares final (getPiece final x) x)
 
 -- Assume Move is legal here
 rawDoMove :: Board -> Piece -> Pos -> Move -> Board
 
 -- Pawn
-rawDoMove b pawn@(Piece c (Pawn _)) s@(x,y) (PawnMove e@(mx,my)) = rawSetPieces ((e, Piece c nextPawn) : (s,Empty) : eps) b
+rawDoMove b pawn@(Piece c (Pawn _)) s@(x,y) (PawnMove e@(mx,my)) = b & rawSetPieces ((s, Piece c nextPawn) : eps)  
+                                                                     & normalMove s e
     where
         nextPawn = if (abs (y-my)) /= 3 then (Pawn Normal) else
                 Pawn (EnPassant [(x,j) | j <- [(min y my)+1..(max y my)-1]])
