@@ -14,10 +14,9 @@ body {
     grid-template-columns: repeat(16, 1fr);
 }
 
-#turn{
-   margin: 20px;
-   float: left;
-   font-size: 40px;
+#sidebar{
+    padding: 20px;
+    float:left;
 }
 
 .black.red {

@@ -213,6 +213,9 @@ function getBoardState(){
         });
     });
 }
+$('#flip').click(() => {
+    $('#chessboard').append($('#chessboard>').detach().get().reverse());
+})
 
 getBoardState();
 setInterval(getBoardState, 5000);
