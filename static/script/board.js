@@ -58,6 +58,14 @@ function makeMove(start, move){
         elements[i][j].removeClass("blue");
     }
     highlighted = [];
+    setLastHighlight(toSend);
+    let either = doMove(board, toSend);
+    if ('Left' in either){
+        alert(either.Left);
+        selected = [-1,-1];
+        choosable = [-1, -1];
+        return;
+    }
     $.ajax({
         type: 'POST',
         url: '/board',
@@ -69,14 +77,6 @@ function makeMove(start, move){
         drawPieces(data.board);
         board = data;
     });
-    setLastHighlight(toSend);
-    let either = doMove(board, toSend);
-    if ('Left' in either){
-        alert(either.Left);
-        selected = [-1,-1];
-        choosable = [-1, -1];
-        return;
-    }
     let data = either.Right;
     $('#turn').text('Turn: '+(data.turn?"Black":"White"));
     drawPieces(data.board);
