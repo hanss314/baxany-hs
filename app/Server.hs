@@ -27,7 +27,6 @@ import Piece
 
 main = do
     let port = 3000
-    putStrLn $ "Listening on port " ++ show port
     state <- newIORef baxany
     moves <- newIORef []
     args <- getArgs
@@ -36,6 +35,7 @@ main = do
     whiteAuth <- (newStdGen >>= return . take 100 . randomRs ('0', 'Z'))
     putStrLn $ "Black: " ++ blackAuth
     putStrLn $ "White: " ++ whiteAuth
+    putStrLn $ "Listening on port " ++ show port
     run port (app state moves (blackAuth, whiteAuth) shouldAuth)
 
 app :: (IORef Board) -> (IORef [((Int, Int), Move)]) -> (String, String) -> Bool -> Application
