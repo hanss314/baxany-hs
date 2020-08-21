@@ -11,10 +11,14 @@ import Text.JSON
 import Json
 import Board
 import Move
+import MoveHelper
 
 
 foreign import javascript unsafe "movesAt_ = $1"
     js_set_movesAt :: Callback a -> IO ()
+
+foreign import javascript unsafe "doMove_ = $1"
+    js_set_doMove :: Callback a -> IO ()
 
 --movesAt :: Board -> Pos -> [Move]
 
@@ -36,6 +40,12 @@ jsMovesAt b p = do
     pos <- valToObj p
     objToVal $ movesAt board pos
 
+jsDoMove :: JSVal -> JSVal -> IO JSVal
+jsDoMove b m = do
+    board <- valToObj b :: IO Board
+    move <- valToObj m :: IO ((Int, Int), Move)
+    objToVal $ fromMaybe board $ doMoveAt board (fst move) (snd move)
+
 returnViaArgument :: (JSVal -> IO JSVal) -> JSVal -> JSVal -> IO ()
 returnViaArgument f arg retObj = do
     r <- f arg
@@ -49,3 +59,6 @@ returnViaArgument2 f a1 a2 retObj = do
 main = do
     movesAtCb <- syncCallback3 ContinueAsync (returnViaArgument2 jsMovesAt)
     js_set_movesAt movesAtCb 
+    
+    doMoveCb <- syncCallback3 ContinueAsync (returnViaArgument2 jsDoMove)
+    js_set_doMove doMoveCb

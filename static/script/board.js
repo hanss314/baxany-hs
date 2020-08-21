@@ -31,7 +31,6 @@ function setLastHighlight(move){
     }else{
         lastMoved.push(...end.pos);
     }
-    console.log(lastMoved);
     for(let i=0; i<lastMoved.length; i++){
         let p = lastMoved[i];
         elements[p[0]][p[1]].addClass("red");
@@ -54,10 +53,9 @@ function peq(a,b){
 
 function makeMove(start, move){
     let toSend = [start, move]
-    for(let i=0; i<highlighted.length; i++){
-        let p = highlighted[i];
-        elements[p[0]][p[1]].removeClass("green");
-        elements[p[0]][p[1]].removeClass("blue");
+    for(let i=0; i<size; i++)for(let j=0; j<size; j++){
+        elements[i][j].removeClass("green");
+        elements[i][j].removeClass("blue");
     }
     highlighted = [];
     $.ajax({
@@ -72,12 +70,14 @@ function makeMove(start, move){
         board = data;
     });
     setLastHighlight(toSend);
+    let data = doMove(board, toSend);
+    $('#turn').text('Turn: '+(data.turn?"Black":"White"));
+    drawPieces(data.board);
+    board = data;
 }
 
 function selectPiece(x,y){
-    let sb = JSON.stringify(board);
-    let pos = JSON.stringify([x,y]);
-    let moves = JSON.parse(movesAt(sb, pos));
+    let moves = movesAt(board, [x,y]);
     for(let i=0; i<highlighted.length; i++){
         let p = highlighted[i];
         elements[p[0]][p[1]].removeClass("green");
@@ -86,7 +86,6 @@ function selectPiece(x,y){
     highlighted = [];
     choosable = [];
     if(peq(selected, [x,y]) && chooseStage === 0){
-       console.log(chooseStage);
         moveCandidates = [];
         selected = [-1,-1]; 
         step = [-1,-1];

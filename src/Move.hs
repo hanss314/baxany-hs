@@ -93,7 +93,7 @@ rawGetMoves b pie@(Piece c Chariot) p = (map N basics) ++ carries ++ mageBoost w
     getCarries :: Pos -> Pos -> Pos -> [Pos]
     getCarries char carr step
         | charNextPiece /= Empty = []
-        | carrNextPiece == Empty = charNextPos : getCarries charNextPos carrNextPos step
+        | carrNextPiece == Empty || carrNextPos == p = charNextPos : getCarries charNextPos carrNextPos step
         | canCapture pie carrNextPiece = [charNextPos]
         | otherwise = []
         where
@@ -134,7 +134,7 @@ rawGetMoves b pie@(Piece c Gryphon) p = steps ++ pushes where
 rawGetMoves _ _ _ = []
 
 getMoves :: Board -> Piece -> Pos -> [Move]
-getMoves board piece@(Piece c t) pos = rawMoves ++ mageBoost where
+getMoves board piece@(Piece c t) pos = (map head . group . sort) $ rawMoves ++ mageBoost where
     rawMoves = rawGetMoves board piece pos
     hasMage = any (\x->x`elem`[Piece c Mage, Piece c (Chameleon Mage)]) $ map (getPiece board) $ pos >+ ua
     rawMageBoost = rawGetMoves board (Piece c Knight) pos

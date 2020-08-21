@@ -11,6 +11,22 @@ import Data.List
 
 data Move = N Pos | PawnMove Pos | CharMove Pos Pos | Chain [Pos] | Push Pos | Throw Pos Pos deriving (Show, Eq)
 
+moveToInt :: Move -> Int
+moveToInt (N _) = 0
+moveToInt (PawnMove _) = 1
+moveToInt (CharMove _ _) = 2
+moveToInt (Chain _) = 3
+moveToInt (Push _) = 4
+moveToInt (Throw _ _) = 5
+
+instance Ord Move where
+    (<=) (N a) (N b) = a <= b
+    (<=) (PawnMove a) (PawnMove b) = a <= b
+    (<=) (CharMove a1 a2) (CharMove b1 b2) = (a1,a2) <= (b1,b2)
+    (<=) (Chain a) (Chain b) = a <= b
+    (<=) (Push a) (Push b) = a <= b
+    (<=) (Throw a1 a2) (Throw b1 b2) = (a1, a2) <= (b1,b2)
+    (<=) x y = (moveToInt x) <= (moveToInt y)
 
 mpb :: Color -> Pos -> Pos
 mpb White = id
