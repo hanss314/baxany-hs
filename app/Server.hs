@@ -84,7 +84,7 @@ serveAllMoves state respond = do
 
 serveLastMove state respond = do
     moves <- readIORef state
-    let resp = if null moves then "[]" else encode $ head moves
+    let resp = if null moves then "[]" else encode $ (head moves, length moves)
     respond $ bsResponse jsonresp $ BU.fromString $ resp
 
 serveBoard state respond = do

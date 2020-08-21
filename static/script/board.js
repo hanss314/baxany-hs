@@ -259,13 +259,16 @@ function drawPieces(pieces){
 function getBoardState(){
     if(lock) return;
     $.getJSON("board/json").done((data) => {
-        $.getJSON("board/hist").done((move) => {
-            moveCount = Math.floor(1+move.length/2);
-            $('#turn').text('Turn: '+moveCount+". "+(data.turn?"Black":"White"));
+        $.getJSON("board/hist/last").done((move) => {
             drawPieces(data.board);
             board = data;
-            if(move.length > 0)
+            if(move.length > 0){
+                moveCount = Math.floor(1+move[1]/2);
+                $('#turn').text('Turn: '+moveCount+". "+(data.turn?"Black":"White"));
                 setLastHighlight(move[0]);
+            } else {
+                $('#turn').text('Turn: 1. White');
+            }
         });
     });
 }
