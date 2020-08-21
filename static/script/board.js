@@ -10,6 +10,8 @@ let selected = [-1,-1]
 let step = [-1,-1]
 let lock = false;
 
+let moveCount = 1;
+
 let auth = "";
 let needAuth = false;
 let player = true;
@@ -80,14 +82,15 @@ function makeMove(start, move){
         contentType: "application/json",
         dataType: 'json'
     }).done((data) => {
-        $('#turn').text('Turn: '+(data.turn?"Black":"White"));
+        $('#turn').text('Turn: '+moveCount+". "+(data.turn?"Black":"White"));
         drawPieces(data.board);
         board = data;
     }).always(() => {
         lock = false;
     });
     let data = either.Right;
-    $('#turn').text('Turn: '+(data.turn?"Black":"White"));
+    if(!data.turn) moveCount++;
+    $('#turn').text('Turn: '+moveCount+". "+(data.turn?"Black":"White"));
     drawPieces(data.board);
     board = data;
 }
@@ -256,11 +259,13 @@ function drawPieces(pieces){
 function getBoardState(){
     if(lock) return;
     $.getJSON("board/json").done((data) => {
-        $.getJSON("board/hist/last").done((move) => {
-            $('#turn').text('Turn: '+(data.turn?"Black":"White"));
+        $.getJSON("board/hist").done((move) => {
+            moveCount = Math.floor(1+move.length/2);
+            $('#turn').text('Turn: '+moveCount+". "+(data.turn?"Black":"White"));
             drawPieces(data.board);
             board = data;
-            setLastHighlight(move);
+            if(move.length > 0)
+                setLastHighlight(move[0]);
         });
     });
 }
