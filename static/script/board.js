@@ -203,9 +203,9 @@ function drawPieces(pieces){
 }
 
 function getBoardState(){
+    if(lock) return;
     $.getJSON("board/json").done((data) => {
         $.getJSON("board/hist/last").done((move) => {
-            if(lock) return;
             $('#turn').text('Turn: '+(data.turn?"Black":"White"));
             drawPieces(data.board);
             board = data;
