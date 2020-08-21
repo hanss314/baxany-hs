@@ -45,6 +45,7 @@ library
     , http-types
     , json
     , mime-types
+    , random
     , text
     , utf8-string
     , vector
@@ -67,6 +68,7 @@ executable baxanyhs-exe
     , http-types
     , json
     , mime-types
+    , random
     , text
     , utf8-string
     , vector
@@ -90,6 +92,7 @@ test-suite baxanyhs-test
     , http-types
     , json
     , mime-types
+    , random
     , text
     , utf8-string
     , vector

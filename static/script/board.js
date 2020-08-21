@@ -10,6 +10,10 @@ let selected = [-1,-1]
 let step = [-1,-1]
 let lock = false;
 
+let auth = "";
+let needAuth = false;
+let player = true;
+
 for(let i=0; i<size; i++){
     elements[i] = new Array(size);
 }
@@ -70,6 +74,7 @@ function makeMove(start, move){
     lock = true;
     $.ajax({
         type: 'POST',
+        headers: {"Authorization": auth}, 
         url: '/board',
         data: JSON.stringify(toSend),
         contentType: "application/json",
@@ -188,14 +193,17 @@ function selectMove(x,y){
 }
 
 function handleClick(x,y){
-    for(let i=0; i<choosable.length; i++){
-        if(peq(choosable[i], [x,y])){
-            selectMove(x,y);
-            return;
+    let isAuthed = !needAuth || (auth !== "" && board.turn === player);
+    if(isAuthed){
+        for(let i=0; i<choosable.length; i++){
+            if(peq(choosable[i], [x,y])){
+                selectMove(x,y);
+                return;
+            }
         }
     }
     if(board.board[y*size+x].type === 1){
-        if(board.board[y*size+x].color === board.turn) {
+        if(board.board[y*size+x].color === board.turn && isAuthed) {
             selectPiece(x,y);
         } else {
             showPiece(x,y);
@@ -256,6 +264,8 @@ function getBoardState(){
         });
     });
 }
+
+$.getJSON("board/needauth").done((data) => {needAuth = data});
 $('#flip').click(() => {
     $('#chessboard').append($('#chessboard>').detach().get().reverse());
 })

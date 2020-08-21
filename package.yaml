@@ -31,6 +31,7 @@ dependencies:
 - utf8-string
 - text
 - mime-types
+- random
 library:
   source-dirs: src
 
