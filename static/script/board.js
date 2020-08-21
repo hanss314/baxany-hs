@@ -4,12 +4,38 @@ let board = {};
 let highlighted = [];
 let moveCandidates = [];
 let choosable = [];
+let lastMoved = [];
 let chooseStage = 0;
 let selected = [-1,-1]
 let step = [-1,-1]
 
 for(let i=0; i<size; i++){
     elements[i] = new Array(size);
+}
+
+function setLastHighlight(move){
+    if (move.length == 0) return;
+    let start = move[0], end = move[1];
+    for(let i=0; i<lastMoved.length; i++){
+        let p = lastMoved[i];
+        elements[p[0]][p[1]].removeClass("red");
+    }
+    lastMoved = [];
+    lastMoved.push(start);
+    if(end.type < 3){
+        lastMoved.push(end.pos);
+    }else if(end.type === 4){
+        let nx = end.pos[1][0] + end.pos[0][0] - start[0];
+        let ny = end.pos[1][1] + end.pos[0][1] - start[1];
+        lastMoved.push(end.pos[0], end.pos[1], [nx, ny]);
+    }else{
+        lastMoved.push(...end.pos);
+    }
+    console.log(lastMoved);
+    for(let i=0; i<lastMoved.length; i++){
+        let p = lastMoved[i];
+        elements[p[0]][p[1]].addClass("red");
+    }
 }
 
 function getFst(move){
@@ -45,7 +71,7 @@ function makeMove(start, move){
         drawPieces(data.board);
         board = data;
     });
-    console.log(toSend);
+    setLastHighlight(toSend);
 }
 
 function selectPiece(x,y){
@@ -168,9 +194,12 @@ function drawPieces(pieces){
 
 function getBoardState(){
     $.getJSON("board/json").done((data) => {
-        $('#turn').text('Turn: '+(data.turn?"Black":"White"));
-        drawPieces(data.board);
-        board = data;
+        $.getJSON("board/hist/last").done((move) => {
+            $('#turn').text('Turn: '+(data.turn?"Black":"White"));
+            drawPieces(data.board);
+            board = data;
+            setLastHighlight(move);
+        });
     });
 }
 

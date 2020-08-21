@@ -20,6 +20,14 @@ body {
    font-size: 40px;
 }
 
+.black.red {
+    background-color: #e33;
+}
+
+.white.red{
+    background-color: #e88;
+}
+
 .black.green{
     background-color: #181;
 }

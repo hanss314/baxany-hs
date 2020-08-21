@@ -20,7 +20,8 @@ isCharMove _ = False
 capturableSquares :: Board -> Piece -> Pos -> [Pos]
 capturableSquares board piece@(Piece c _) pos = (map head . group . sort) $ 
     (concat . map toList . rawGetMoves board piece) pos ++ chariotMoves where
-    chariotMoves = (filter ((== (Piece c Chariot)) . getPiece board) $ map (pos|+) uo)
+    isChariot x = x == (Piece c Chariot) || x == (Piece c (Chameleon Chariot))
+    chariotMoves = (filter (isChariot . getPiece board) $ map (pos|+) uo)
                >>= (\x -> rawGetMoves board (Piece c Chariot) x & filter isCharMove & map (((pos |- x) |+) . mhead))
 
 capturableSquares _ _ _ = []
@@ -149,14 +150,15 @@ capturingMove :: Pos -> Pos -> Board -> Board
 capturingMove s e b = b & preCapture p e s & rawMovePiece s e & postCapture p e where
     p = getPiece b e
 
-doMoveAt :: Board -> Pos -> Move -> Board
+doMoveAt :: Board -> Pos -> Move -> Maybe Board
 doMoveAt b pos move = doMove b (getPiece b pos) pos move
 
 applyList :: [a -> a] -> a -> a
 applyList funcs source = foldl' (\x f -> f x) source funcs
 
-doMove :: Board -> Piece -> Pos -> Move -> Board
-doMove b pie pos move = if move `elem` getMoves b pie pos then switch $ final else b where
+doMove :: Board -> Piece -> Pos -> Move -> Maybe Board
+doMove b pie pos move = if valid then Just (switch $ final) else Nothing where
+    valid = (elem move $ getMoves b pie pos) && (isColor (turn b) $ getPiece b pos)
     squares = [(x,y) | x<-[0..(size b)-1], y<-[0..(size b)-1]]
     prefuncs = map (\x -> preMove pie pos (getPiece b x) x) squares
     pre = applyList prefuncs b
