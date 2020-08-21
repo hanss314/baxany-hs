@@ -8,6 +8,7 @@ let lastMoved = [];
 let chooseStage = 0;
 let selected = [-1,-1]
 let step = [-1,-1]
+let lock = false;
 
 for(let i=0; i<size; i++){
     elements[i] = new Array(size);
@@ -66,6 +67,7 @@ function makeMove(start, move){
         choosable = [-1, -1];
         return;
     }
+    lock = true;
     $.ajax({
         type: 'POST',
         url: '/board',
@@ -76,6 +78,8 @@ function makeMove(start, move){
         $('#turn').text('Turn: '+(data.turn?"Black":"White"));
         drawPieces(data.board);
         board = data;
+    }).always(() => {
+        lock = false;
     });
     let data = either.Right;
     $('#turn').text('Turn: '+(data.turn?"Black":"White"));
@@ -201,6 +205,7 @@ function drawPieces(pieces){
 function getBoardState(){
     $.getJSON("board/json").done((data) => {
         $.getJSON("board/hist/last").done((move) => {
+            if(lock) return;
             $('#turn').text('Turn: '+(data.turn?"Black":"White"));
             drawPieces(data.board);
             board = data;
