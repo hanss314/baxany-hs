@@ -117,6 +117,37 @@ function selectPiece(x,y){
     moveCandidates = moves;
 }
 
+function showPiece(x,y){
+    let moves = movesAt(board, [x,y]);
+    for(let i=0; i<highlighted.length; i++){
+        let p = highlighted[i];
+        elements[p[0]][p[1]].removeClass("green");
+        elements[p[0]][p[1]].removeClass("blue");
+    }
+    highlighted = [];
+    choosable = [];
+    chooseStage = 0;
+    moveCandidates = [];
+    step = [-1,-1];
+    if(peq(selected, [x,y])){
+        selected = [-1,-1]; 
+        return;
+    }
+    for(let i=0; i<moves.length; i++){
+        let p = getFst(moves[i]);
+        let p2 = getSnd(moves[i]);
+        elements[p[0]][p[1]].addClass("green");
+        highlighted.push(p);
+        if(!peq(p, p2)){
+            elements[p2[0]][p2[1]].addClass("green");
+            highlighted.push(p2);
+        }
+    }
+    elements[x][y].addClass("blue");
+    highlighted.push([x,y]);
+    selected = [x,y];
+}
+
 function selectMove(x,y){
     for(let i=0; i<highlighted.length; i++){
         let p = highlighted[i];
@@ -163,8 +194,20 @@ function handleClick(x,y){
             return;
         }
     }
-    if(board.board[y*size+x].type === 1 && board.board[y*size+x].color === board.turn){
-        selectPiece(x,y);
+    if(board.board[y*size+x].type === 1){
+        if(board.board[y*size+x].color === board.turn) {
+            selectPiece(x,y);
+        } else {
+            showPiece(x,y);
+        }
+        if(peq(selected, [-1,-1])){
+            $('#description').html("");
+            return;
+        }
+        let type = board.board[y*size+x].piece.type;
+        let text = "<h2>" + titles[type] + "</h2><br />" + descriptions[type];
+        $('#description').html(text);
+
         return;
     }
 }
