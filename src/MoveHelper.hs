@@ -43,9 +43,9 @@ mhead (PawnMove x) = x
 toList :: Move -> [Pos]
 toList (N x) = [x]
 toList (Chain xs) = xs
-toList (CharMove _ x) = []
+toList (CharMove _ _) = []
 toList (Throw _ x) = [x]
-toList (Push x) = [x]
+toList (Push x) = []
 toList (PawnMove x) = [x]
 
 basicFilter :: Board -> Piece -> [Pos] -> [Move]

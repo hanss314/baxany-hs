@@ -17,14 +17,40 @@ isCharMove :: Move -> Bool
 isCharMove (CharMove _ _) = True
 isCharMove _ = False
 
-capturableSquares :: Board -> Piece -> Pos -> [Pos]
-capturableSquares board piece@(Piece c _) pos = (map head . group . sort) $ 
-    (concat . map toList . rawGetMoves board piece) pos ++ chariotMoves where
-    isChariot x = x == (Piece c Chariot) || x == (Piece c (Chameleon Chariot))
-    chariotMoves = (filter (isChariot . getPiece board) $ map (pos|+) uo)
+chariotMoves board piece@(Piece c _) pos = (filter (isChariot . getPiece board) $ map (pos|+) uo)
                >>= (\x -> rawGetMoves board (Piece c Chariot) x & filter isCharMove & map (((pos |- x) |+) . mhead))
+    where 
+        isChariot x = x == (Piece c Chariot) || x == (Piece c (Chameleon Chariot))
 
-capturableSquares _ _ _ = []
+chariotMoves _ _ _ = []
+
+rawCapturableSquares :: Board -> Piece -> Pos -> [Pos]
+rawCapturableSquares board piece@(Piece c Elephant) pos = (ua >>= getEcaps pos) ++ chariotMoves board piece pos where
+    getEcaps :: Pos -> Pos -> [Pos]
+    getEcaps start step = case getPiece board $ step |+ start of
+            Empty -> []
+            Block -> if start == pos then [] else [start]
+            _ -> getEcaps (start |+ step) step
+
+rawCapturableSquares board piece@(Piece c Trebuchet) pos = capturableSquares board (Piece c Elephant) pos
+                                                     ++ (rawGetMoves board piece pos >>= tmoves) where
+    
+    isGhoul (Piece _ Ghoul) = True
+    isGhoul (Piece _ (Chameleon Ghoul)) = True
+    isGhoul _ = False
+    tmoves (Throw s e) = if isGhoul $ getPiece board e then [s,e] else [e]
+    tmoves _ = []
+
+rawCapturableSquares board piece@(Piece c Chariot) pos = (rawGetMoves board piece pos >>= cmoves) where
+    cmoves (CharMove s e) = [e]
+    cmoves _ = []
+
+rawCapturableSquares board (Piece c (Chameleon t)) pos = capturableSquares board (Piece c t) pos
+
+rawCapturableSquares _ _ _ = []
+
+capturableSquares board piece pos = (map head . group . sort) (nmoves ++ rawCapturableSquares board piece pos) where
+    nmoves = (getMoves board piece pos >>= toList) ++ chariotMoves board piece pos
 
 getEps :: Color -> Board -> Pos -> [Pos]
 getEps c board pos@(x,y) = filter (canEp pos . getPiece board) $ map ((,) x) [0..(size board)-1] where
