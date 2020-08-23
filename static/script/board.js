@@ -279,4 +279,4 @@ $('#flip').click(() => {
 })
 
 getBoardState();
-setInterval(getBoardState, 5000);
+setInterval(getBoardState, 1000);
