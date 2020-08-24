@@ -98,6 +98,7 @@ serveTextBoard state respond = do
 respondWithMove state smoves respond req cb = do
     content <- readReqContent req
     let rmove = decode content :: Result ((Int, Int), Move)
+    print rmove
     case rmove of
         Error x -> respond $ responseBuilder status401 plainresp $ copyByteString $ BU.fromString x
         Ok move@(p, m) -> do

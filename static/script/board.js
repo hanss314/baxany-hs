@@ -66,7 +66,9 @@ function makeMove(start, move){
     }
     highlighted = [];
     setLastHighlight(toSend);
+    console.log('Making move');
     let either = doMove(board, toSend);
+    console.log('Made move');
     if ('Left' in either){
         alert(either.Left);
         selected = [-1,-1];

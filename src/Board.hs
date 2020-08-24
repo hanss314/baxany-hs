@@ -78,7 +78,7 @@ secondrow = [
     Chancellor, Dragon, Chameleon Null, Elephant, Trebuchet, Leo, Queen, HookMover] & (\x -> x ++ reverse x)
 
 thirdrow = [
-    Rook, Ghoul, Imitator, Kangaroo, Giraffe, General, Vao, Camel] & (\x -> x ++ reverse x)
+    Rook, Ghoul, Imitator, Kangaroo, Giraffe, General, Vao, Cardinal] & (\x -> x ++ reverse x)
 
 fourthrow = [
     Pao, Gryphon, Zebra, Camel, Cobra, Knight, Mage, Bishop] & (\x -> x ++ reverse x)

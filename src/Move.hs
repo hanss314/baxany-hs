@@ -108,12 +108,17 @@ rawGetMoves b pie@(Piece c General) p = rawGetMoves b (Piece c King) p ++ swaps
         swaps = map N $ filter ((==) (Piece c King) . getPiece b) $ p >+ [(x,y) | x<-[-2..2], y<-[-2..2]]
 
 rawGetMoves b pie@(Piece c Lance) p = basicFilterSlider b pie p $ [mpb c (0,1)]
-rawGetMoves b pie@(Piece c Imitator) p =
-    filter (\m -> ((getPiece b $ mhead m) == Empty) 
-               || (p `elem` capturableSquares b (getPiece b (mhead m)) (mhead m))) $ 
-    filter (\m -> (getType $ getPiece b $ mhead m) /= Imitator) qmoves 
-    where
-        qmoves = rawGetMoves b (Piece c Queen) p
+rawGetMoves b pie@(Piece c Imitator) p = map N $ (ua >>= noCapSlider b p) ++ threatens where
+    grid = [(x,y) | x<-[0..(size b)-1], y<-[0..(size b)-1]]
+    isImitator (Piece _ Imitator) = True
+    isImitator (Piece _ (Chameleon Imitator)) = True
+    isImitator Block = True
+    isImitator Empty = True
+    isImitator _ = False
+    canCapture piece pos = (not $ isImitator piece) && (elem p $ capturableSquares b piece pos)
+    threatens = filter (\pos -> canCapture (getPiece b pos) pos) grid
+        
+        
 
 rawGetMoves b pie@(Piece c Chariot) p = (map N basics) ++ carries ++ mageBoost where
     getCarries :: Pos -> Pos -> Pos -> [Pos]
@@ -187,15 +192,16 @@ doMove b pie pos move = if not valid then Left "Invalid Move"
                         else if not $ null check then Left ("Check from " <> show check) 
                         else Right final where
     valid = (elem move $ getMoves b pie pos) && (isColor (turn b) $ getPiece b pos)
+
     squares = [(x,y) | x<-[0..(size b)-1], y<-[0..(size b)-1]]
     prefuncs = map (\x -> preMove pie pos (getPiece b x) x) squares
     pre = applyList prefuncs b
     moved = rawDoMove pre pie pos move
     postfuncs = map (\x -> postMove pie pos (getPiece moved x) x) squares
     final = switch $ applyList postfuncs moved
-    allSquares = [(x,y) | x<-[0..(size b)-1], y<-[0..(size b)-1]]
-    king = head $ filter ((==(Piece (turn b) King)) . getPiece final) allSquares 
-    check = filter (isColor (other $ turn b) . getPiece final) allSquares 
+
+    king = head $ filter ((==(Piece (turn b) King)) . getPiece final) squares 
+    check = filter (isColor (other $ turn b) . getPiece final) squares 
           & filter (\x -> elem king $ capturableSquares final (getPiece final x) x)
 
 -- Assume Move is legal here
