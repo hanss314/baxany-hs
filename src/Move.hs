@@ -84,9 +84,9 @@ rawGetMoves b pie@(Piece _ HookMover) p = doubleMoverN b pie p ud
 rawGetMoves b pie@(Piece _ Empress) p = doubleMoverN b pie p ua
 rawGetMoves b pie@(Piece _ Joker) p = doubleMoverN b pie p (r4 (1,2) >>= mh)
 rawGetMoves b pie@(Piece c Lion) p  = doubles ++ steps where
-    doubles = (map mhead $ rawGetMoves b (Piece c King) p) >>= 
-        (\x -> (map (\y->Chain [x, mhead y]) $ rawGetMoves (rawSetPiece p Empty b) (Piece c King) x)
     steps = basicFilter b pie [p|+(x,y) | x<-[-2..2], y<-[-2..2], x/=0 || y/=0]
+    doubles = (map mhead $ rawGetMoves b (Piece c King) p) >>= 
+        (\x -> (map (\y->Chain [x, mhead y]) $ rawGetMoves (rawSetPiece p Empty b) (Piece c King) x))
 
 rawGetMoves b pie@(Piece c Dragon) p = (rawGetMoves b (Piece c Rook) p) ++ (rawGetMoves b (Piece c Lion) p)
 
