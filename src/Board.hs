@@ -80,6 +80,9 @@ secondrow = [
 thirdrow = [
     Rook, Ghoul, Imitator, Kangaroo, Giraffe, General, Vao, Cardinal] & (\x -> x ++ reverse x)
 
+brokethirdrow = [
+    Rook, Ghoul, Imitator, Kangaroo, Giraffe, General, Vao, Camel] & (\x -> x ++ reverse x)
+
 fourthrow = [
     Pao, Gryphon, Zebra, Camel, Cobra, Knight, Mage, Bishop] & (\x -> x ++ reverse x)
 
@@ -87,13 +90,21 @@ pawns = take 16 $ repeat (Pawn Start)
 
 centre = take (6*16) $ repeat Empty
 
-whites = map (Piece White) $ back ++ secondrow ++ thirdrow ++ fourthrow ++ pawns
-blacks = map (Piece Black) $ pawns ++ fourthrow ++ thirdrow ++ secondrow ++ back
+rows = [back, secondrow, thirdrow, fourthrow, pawns]
+brokerows = [back, secondrow, brokethirdrow, fourthrow, pawns]
 
-baxanyList = whites ++ centre ++ blacks
+
+
+baxanyList r = (map (Piece White) $ concat r) ++ centre ++ (map (Piece Black) $ concat $ reverse r)
 
 baxany = Board {
-    toVector = V.fromList baxanyList,
+    toVector = V.fromList $ baxanyList rows,
     turn = White,
-    size = 16
-}
+    size = 16 }
+
+brokeBaxany = Board {
+    toVector = V.fromList $ baxanyList brokerows,
+    turn = White,
+    size = 16 }
+
+
