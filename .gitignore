@@ -5,6 +5,5 @@ baxanyhs-exe
 ghcjsbuild.sh
 *.jsexe
 *~
-Format.hs
 src/*.txt
 src/*.json
