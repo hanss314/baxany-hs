@@ -22,16 +22,17 @@ description:         Please see the README on GitHub at <https://github.com/hans
 dependencies:
 - base >= 4.7 && < 5
 - vector
-- wai
-- warp
 - json
-- blaze-builder
-- bytestring
+- wai
 - http-types
-- utf8-string
 - text
+- bytestring
 - mime-types
 - random
+- yesod
+- scientific
+- aeson
+- unordered-containers
 library:
   source-dirs: src
 

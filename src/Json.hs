@@ -4,6 +4,12 @@ import Text.JSON
 import Text.JSON.Types
 import qualified Data.Vector as V
 
+import Data.Scientific
+import qualified Data.Aeson.Types as A
+import Data.Bifunctor
+import qualified Data.HashMap.Strict as H
+import qualified Data.Text as T
+
 import Board
 import Piece
 import MoveHelper
@@ -114,7 +120,39 @@ instance JSON Move where
 
 data MovePair = MovePair (Int, Int) Move deriving Eq
 
+safeFromRational x = case fromRationalRepetend (Just 1) x of
+    Left  (y, _) -> y
+    Right (y, _) -> y
+
 instance JSON MovePair where
     showJSON (MovePair x m) = showJSON (x, m)
     readJSON x = readJSON x >>= (return . uncurry MovePair)
 
+textToAeson :: JSValue -> A.Value
+textToAeson JSNull = A.Null
+textToAeson (JSBool b) = A.Bool b
+textToAeson (JSRational b r) = A.Number $ fromIntegral $ truncate r
+textToAeson (JSString s) = A.String $ T.pack $ fromJSString s
+textToAeson (JSArray vals) = A.Array $ V.fromList $ map textToAeson vals
+textToAeson (JSObject obj) = A.Object $ H.fromList $ map (bimap T.pack textToAeson) $ fromJSObject obj
+
+aesonToText :: A.Value -> JSValue
+aesonToText A.Null = JSNull
+aesonToText (A.Bool b) = JSBool b
+aesonToText (A.Number s) = JSRational False $ fromIntegral $ truncate s
+aesonToText (A.String s) = JSString $ toJSString $ T.unpack s
+aesonToText (A.Array vals) = JSArray $ map aesonToText $ V.toList vals
+aesonToText (A.Object obj) = JSObject $ toJSObject $ map (bimap T.unpack aesonToText) $ H.toList obj
+
+jsonToAeson :: (JSON a) => a -> A.Value
+aesonToJson :: (JSON a) => A.Value -> A.Parser a
+jsonToAeson = textToAeson . showJSON
+aesonToJson x = case readJSON $ aesonToText x of
+    Ok r -> pure r
+    Error e -> A.typeMismatch e x
+
+instance A.ToJSON Board where toJSON = jsonToAeson
+instance A.FromJSON Board where parseJSON = aesonToJson
+
+instance A.ToJSON Move where toJSON = jsonToAeson
+instance A.FromJSON Move where parseJSON = aesonToJson
