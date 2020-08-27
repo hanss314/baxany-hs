@@ -8,7 +8,6 @@ import Yesod
 import Network.Wai
 import Network.HTTP.Types.Header
 
-import Data.Monoid
 import Data.IORef
 import Data.Either
 import System.IO
@@ -33,14 +32,15 @@ data BaxanyServer = BaxanyServer
                   }
 
 mkYesod "BaxanyServer" [parseRoutes|
-/board/text         BoardT      GET POST
-/board              BoardM      GET POST
-/board/json         BoardJ      GET
-/board/moves        MovesAt     GET
-/board/hist         BoardHist   GET
-/board/hist/last    LastHist    GET
-/board/needauth/    RequireAuth GET
-!/board/*Texts      File        GET
+/                   MainPage    GET
+/text               BoardT      GET POST
+/api/board          BoardJ      GET POST
+/api/moves          MovesAt     GET
+/api/hist           BoardHist   GET
+/api/hist/last      LastHist    GET
+/api/needauth/      RequireAuth GET
+
+!/*Texts      File        GET
 |]
          
 instance Yesod BaxanyServer
@@ -73,11 +73,11 @@ getRequireAuth = do
     yesod <- getYesod 
     return $ T.pack $ encode $ shouldAuth yesod
 
-postBoardM = someBoardMove getBoardJ
+postBoardJ = someBoardMove getBoardJ
 postBoardT = someBoardMove getBoardT
 
-getBoardM :: Handler () 
-getBoardM = sendFile "text/html" "static/index.html"
+getMainPage :: Handler () 
+getMainPage = sendFile "text/html" "static/index.html"
 
 getFile :: [T.Text] ->  Handler ()
 getFile ts = sendFile (defaultMimeLookup fname) $ T.unpack fname where
@@ -102,7 +102,6 @@ someBoardMove callback = do
             Right _ -> do
                 liftIO $ atomicModifyIORef' (moves yesod) (\ms -> ((pos, move):ms, ()))
                 callback
-
 main = do
     let port = 3000
     board <- newIORef baxany

@@ -79,7 +79,7 @@ function makeMove(start, move){
     $.ajax({
         type: 'POST',
         headers: {"Authorization": auth}, 
-        url: '/board',
+        url: '/api/board',
         data: JSON.stringify(toSend),
         contentType: "application/json",
         dataType: 'json'
@@ -247,7 +247,7 @@ function drawPieces(pieces){
             if(piece.type != 1){
                 img = "none";
             } else {
-                let url = "board/img/";
+                let url = "/img/";
                 url += piece.color ? "black" : "white";
                 url += piece.piece.type;
                 url += ".png"
@@ -260,8 +260,8 @@ function drawPieces(pieces){
 
 function getBoardState(){
     if(lock) return;
-    $.getJSON("board/json").done((data) => {
-        $.getJSON("board/hist/last").done((move) => {
+    $.getJSON("/api/board").done((data) => {
+        $.getJSON("/api/hist/last").done((move) => {
             drawPieces(data.board);
             board = data;
             if(move.length > 0){
@@ -275,7 +275,7 @@ function getBoardState(){
     });
 }
 
-$.getJSON("board/needauth").done((data) => {needAuth = data});
+$.getJSON("/api/needauth").done((data) => {needAuth = data});
 $('#flip').click(() => {
     $('#chessboard').append($('#chessboard>').detach().get().reverse());
 })
