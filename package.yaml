@@ -33,6 +33,9 @@ dependencies:
 - scientific
 - aeson
 - unordered-containers
+- persistent
+- persistent-sqlite
+- persistent-template
 library:
   source-dirs: src
 

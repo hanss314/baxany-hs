@@ -3,6 +3,13 @@
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+
 
 import Yesod
 import Network.Wai
@@ -18,11 +25,25 @@ import Text.JSON
 import Network.Mime
 import System.Random
 
+import Database.Persist
+import Database.Persist.Sqlite
+import Database.Persist.TH
+
 import Json
 import Board
 import Move
 import MoveHelper 
 import Piece
+
+sqlDB :: T.Text
+sqlDB = "baxany.sqlite3"
+
+share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
+User
+    username T.Text
+    passwordHash T.Text
+    deriving Show
+|]
 
 data BaxanyServer = BaxanyServer 
                   { board :: IORef Board
@@ -39,6 +60,8 @@ mkYesod "BaxanyServer" [parseRoutes|
 /api/hist           BoardHist   GET
 /api/hist/last      LastHist    GET
 /api/needauth/      RequireAuth GET
+
+/api/users          Users       GET POST
 
 !/*Texts      File        GET
 |]
@@ -73,6 +96,16 @@ getRequireAuth = do
     yesod <- getYesod 
     return $ T.pack $ encode $ shouldAuth yesod
 
+getUsers = do
+    name <- requireCheckJsonBody :: Handler T.Text
+    user <- runSqlite sqlDB $ selectList [UserUsername ==. name] []
+    return $ show user
+
+postUsers = do
+    (name, pass) <- requireCheckJsonBody :: Handler (T.Text, T.Text)
+    runSqlite sqlDB $ insert $ User name pass
+    return name
+
 postBoardJ = someBoardMove getBoardJ
 postBoardT = someBoardMove getBoardT
 
@@ -102,8 +135,9 @@ someBoardMove callback = do
             Right _ -> do
                 liftIO $ atomicModifyIORef' (moves yesod) (\ms -> ((pos, move):ms, ()))
                 callback
-main = do
-    let port = 3000
+
+initServer :: IO BaxanyServer
+initServer = do
     board <- newIORef baxany
     moves <- newIORef []
     args <- getArgs
@@ -112,6 +146,15 @@ main = do
     whiteAuth <- (newStdGen >>= return . take 100 . randomRs ('0', 'Z'))
     putStrLn $ "Black: " ++ blackAuth
     putStrLn $ "White: " ++ whiteAuth
+    return $ BaxanyServer board moves (blackAuth, whiteAuth) shouldAuth
+
+initDB = runSqlite sqlDB $ runMigration migrateAll
+
+
+main = do
+    let port = 3000
+    server <- initServer
+    initDB
     putStrLn $ "Listening on port " ++ show port
-    warp port (BaxanyServer board moves (blackAuth, whiteAuth) shouldAuth)
+    warp port server
 

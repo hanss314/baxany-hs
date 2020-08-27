@@ -5,5 +5,7 @@ baxanyhs-exe
 ghcjsbuild.sh
 *.jsexe
 *~
+*.aes
+*.sqlite*
 src/*.txt
 src/*.json
