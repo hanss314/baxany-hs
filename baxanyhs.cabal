@@ -46,6 +46,7 @@ library
     , http-types
     , json
     , mime-types
+    , monad-logger
     , persistent
     , persistent-sqlite
     , persistent-template
@@ -73,6 +74,7 @@ executable baxanyhs-exe
     , http-types
     , json
     , mime-types
+    , monad-logger
     , persistent
     , persistent-sqlite
     , persistent-template
@@ -101,6 +103,7 @@ test-suite baxanyhs-test
     , http-types
     , json
     , mime-types
+    , monad-logger
     , persistent
     , persistent-sqlite
     , persistent-template

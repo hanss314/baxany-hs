@@ -3,13 +3,8 @@
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE ViewPatterns      #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-
+{-# LANGUAGE GADTs, MultiParamTypeClasses #-}
+{-# LANGUAGE DerivingStrategies, GeneralizedNewtypeDeriving, StandaloneDeriving, UndecidableInstances #-}
 
 import Yesod
 import Network.Wai
@@ -24,6 +19,8 @@ import qualified Data.Text as T
 import Text.JSON
 import Network.Mime
 import System.Random
+
+import Control.Monad.Logger (runStderrLoggingT)
 
 import Database.Persist
 import Database.Persist.Sqlite
@@ -42,6 +39,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 User
     username T.Text
     passwordHash T.Text
+    UniqueUsername username
     deriving Show
 |]
 
@@ -50,6 +48,7 @@ data BaxanyServer = BaxanyServer
                   , moves :: IORef [((Int, Int), Move)]
                   , auth :: (String, String)
                   , shouldAuth :: Bool
+                  , pool :: ConnectionPool
                   }
 
 mkYesod "BaxanyServer" [parseRoutes|
@@ -66,7 +65,16 @@ mkYesod "BaxanyServer" [parseRoutes|
 !/*Texts      File        GET
 |]
          
+
+initDB = runSqlite sqlDB $ runMigration migrateAll
+
 instance Yesod BaxanyServer
+
+instance YesodPersist BaxanyServer where
+    type YesodPersistBackend BaxanyServer = SqlBackend
+    runDB action = do
+        server <- getYesod
+        runSqlPool action $ pool server
 
 liftIORef = liftIO . readIORef
 
@@ -98,12 +106,12 @@ getRequireAuth = do
 
 getUsers = do
     name <- requireCheckJsonBody :: Handler T.Text
-    user <- runSqlite sqlDB $ selectList [UserUsername ==. name] []
+    user <- runDB $ getBy404 $ UniqueUsername name
     return $ show user
 
 postUsers = do
     (name, pass) <- requireCheckJsonBody :: Handler (T.Text, T.Text)
-    runSqlite sqlDB $ insert $ User name pass
+    runDB $ insert400_ $ User name pass
     return name
 
 postBoardJ = someBoardMove getBoardJ
@@ -136,7 +144,7 @@ someBoardMove callback = do
                 liftIO $ atomicModifyIORef' (moves yesod) (\ms -> ((pos, move):ms, ()))
                 callback
 
-initServer :: IO BaxanyServer
+initServer :: IO (ConnectionPool -> BaxanyServer)
 initServer = do
     board <- newIORef baxany
     moves <- newIORef []
@@ -148,13 +156,11 @@ initServer = do
     putStrLn $ "White: " ++ whiteAuth
     return $ BaxanyServer board moves (blackAuth, whiteAuth) shouldAuth
 
-initDB = runSqlite sqlDB $ runMigration migrateAll
-
-
 main = do
     let port = 3000
     server <- initServer
-    initDB
     putStrLn $ "Listening on port " ++ show port
-    warp port server
+    runStderrLoggingT $ withSqlitePool sqlDB 10 $ \pool -> liftIO $ do
+        initDB
+        warp port (server pool)
 

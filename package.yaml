@@ -36,6 +36,7 @@ dependencies:
 - persistent
 - persistent-sqlite
 - persistent-template
+- monad-logger
 library:
   source-dirs: src
 
