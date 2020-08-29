@@ -16,13 +16,10 @@ import Network.HTTP.Types.Header
 
 import Data.IORef
 import Data.Either
-import System.IO
-import System.Environment
 import Data.String
 import qualified Data.Text as T
 import Text.JSON
 import Network.Mime
-import System.Random
 
 import Control.Monad.Logger (runStderrLoggingT)
 import Control.Monad
@@ -33,6 +30,8 @@ import Control.Monad.Trans.Reader
 import Database.Persist
 import Database.Persist.Sqlite
 import Database.Persist.TH
+
+import BaxanyServer
 
 import Json
 import Board
@@ -55,15 +54,6 @@ instance HashDBUser User where
     userPasswordHash = userPassword
     setPasswordHash h u = u { userPassword = (Just h) }
 
-data BaxanyServer = BaxanyServer 
-                  { board :: IORef Board
-                  , moves :: IORef [((Int, Int), Move)]
-                  , auth :: (String, String)
-                  , shouldAuth :: Bool
-                  , channel :: TChan T.Text
-                  , pool :: ConnectionPool
-                  }
-
 mkYesod "BaxanyServer" [parseRoutes|
 /                   HomeR       GET
 /board              BoardPage   GET
@@ -80,7 +70,6 @@ mkYesod "BaxanyServer" [parseRoutes|
 !/*Texts      File        GET
 |]
          
-
 initDB = runSqlite sqlDB $ runMigration migrateAll
 
 instance Yesod BaxanyServer
@@ -110,6 +99,7 @@ instance RenderMessage BaxanyServer FormMessage where
 
 instance YesodAuthPersist BaxanyServer where 
     type AuthEntity BaxanyServer = User 
+
 
 liftIORef = liftIO . readIORef
 
@@ -154,7 +144,8 @@ getUsers = do
 
 postUsers = do
     (name, pass) <- requireCheckJsonBody :: Handler (T.Text, T.Text)
-    runDB $ insert400_ $ User name Nothing
+    user <- setPassword pass $ User name Nothing
+    runDB $ insert400 user
     return name
 
 postBoardJ = someBoardMove getBoardJ
@@ -203,19 +194,6 @@ someBoardMove callback = do
                 liftIO $ atomically $ writeTChan (channel yesod) $ T.pack $ encode b
                 liftIO $ atomicModifyIORef' (moves yesod) (\ms -> ((pos, move):ms, ()))
                 callback
-
-initServer :: IO (ConnectionPool -> BaxanyServer)
-initServer = do
-    board <- newIORef baxany
-    moves <- newIORef []
-    args <- getArgs
-    chan <- atomically newBroadcastTChan
-    let shouldAuth = "auth" `elem` args
-    blackAuth <- (newStdGen >>= return . take 100 . randomRs ('0', 'Z'))
-    whiteAuth <- (newStdGen >>= return . take 100 . randomRs ('0', 'Z'))
-    putStrLn $ "Black: " ++ blackAuth
-    putStrLn $ "White: " ++ whiteAuth
-    return $ BaxanyServer board moves (blackAuth, whiteAuth) shouldAuth chan
 
 main = do
     let port = 3000

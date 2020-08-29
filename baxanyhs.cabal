@@ -67,6 +67,7 @@ library
 executable baxanyhs-exe
   main-is: Server.hs
   other-modules:
+      BaxanyServer
       Paths_baxanyhs
   hs-source-dirs:
       app
