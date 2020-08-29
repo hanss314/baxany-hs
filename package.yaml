@@ -30,6 +30,7 @@ dependencies:
 - mime-types
 - random
 - yesod
+- yesod-auth
 - scientific
 - aeson
 - unordered-containers
@@ -37,6 +38,7 @@ dependencies:
 - persistent-sqlite
 - persistent-template
 - monad-logger
+- yesod-auth-hashdb
 library:
   source-dirs: src
 

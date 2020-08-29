@@ -57,6 +57,8 @@ library
     , vector
     , wai
     , yesod
+    , yesod-auth
+    , yesod-auth-hashdb
   default-language: Haskell2010
 
 executable baxanyhs-exe
@@ -85,6 +87,8 @@ executable baxanyhs-exe
     , vector
     , wai
     , yesod
+    , yesod-auth
+    , yesod-auth-hashdb
   default-language: Haskell2010
 
 test-suite baxanyhs-test
@@ -114,4 +118,6 @@ test-suite baxanyhs-test
     , vector
     , wai
     , yesod
+    , yesod-auth
+    , yesod-auth-hashdb
   default-language: Haskell2010

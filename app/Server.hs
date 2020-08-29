@@ -7,6 +7,9 @@
 {-# LANGUAGE DerivingStrategies, GeneralizedNewtypeDeriving, StandaloneDeriving, UndecidableInstances #-}
 
 import Yesod
+import Yesod.Auth
+import Yesod.Auth.HashDB
+import qualified Yesod.Auth.Message as M
 import Network.Wai
 import Network.HTTP.Types.Header
 
@@ -21,6 +24,7 @@ import Network.Mime
 import System.Random
 
 import Control.Monad.Logger (runStderrLoggingT)
+import Control.Monad
 
 import Database.Persist
 import Database.Persist.Sqlite
@@ -37,11 +41,15 @@ sqlDB = "baxany.sqlite3"
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 User
-    username T.Text
-    passwordHash T.Text
-    UniqueUsername username
+    name T.Text
+    password T.Text Maybe
+    UniqueUser name
     deriving Show
 |]
+
+instance HashDBUser User where
+    userPasswordHash = userPassword
+    setPasswordHash h u = u { userPassword = (Just h) }
 
 data BaxanyServer = BaxanyServer 
                   { board :: IORef Board
@@ -52,7 +60,8 @@ data BaxanyServer = BaxanyServer
                   }
 
 mkYesod "BaxanyServer" [parseRoutes|
-/                   MainPage    GET
+/                   HomeR       GET
+/board              BoardPage   GET
 /text               BoardT      GET POST
 /api/board          BoardJ      GET POST
 /api/moves          MovesAt     GET
@@ -61,6 +70,7 @@ mkYesod "BaxanyServer" [parseRoutes|
 /api/needauth/      RequireAuth GET
 
 /api/users          Users       GET POST
+/auth AuthR Auth getAuth
 
 !/*Texts      File        GET
 |]
@@ -75,6 +85,26 @@ instance YesodPersist BaxanyServer where
     runDB action = do
         server <- getYesod
         runSqlPool action $ pool server
+
+instance YesodAuth BaxanyServer where
+    type AuthId BaxanyServer = UserId
+    
+    loginDest _ = HomeR
+    logoutDest _ = HomeR
+    authPlugins _ = [ authHashDB (Just . UniqueUser) ]
+    authenticate creds = liftHandler $ runDB $ do
+        let name = credsIdent creds
+        x <- getBy $ UniqueUser name
+        liftIO $ print x
+        return $ case x of 
+            Just (Entity username _) -> Authenticated username
+            Nothing -> UserError $ M.IdentifierNotFound name
+
+instance RenderMessage BaxanyServer FormMessage where
+    renderMessage _ _ = defaultFormMessage
+
+instance YesodAuthPersist BaxanyServer where 
+    type AuthEntity BaxanyServer = User 
 
 liftIORef = liftIO . readIORef
 
@@ -106,19 +136,33 @@ getRequireAuth = do
 
 getUsers = do
     name <- requireCheckJsonBody :: Handler T.Text
-    user <- runDB $ getBy404 $ UniqueUsername name
+    user <- runDB $ getBy404 $ UniqueUser name
     return $ show user
 
 postUsers = do
     (name, pass) <- requireCheckJsonBody :: Handler (T.Text, T.Text)
-    runDB $ insert400_ $ User name pass
+    runDB $ insert400_ $ User name Nothing
     return name
 
 postBoardJ = someBoardMove getBoardJ
 postBoardT = someBoardMove getBoardT
 
-getMainPage :: Handler () 
-getMainPage = sendFile "text/html" "static/index.html"
+getBoardPage :: Handler ()
+getBoardPage = sendFile "text/html" "static/index.html"
+
+getHomeR :: Handler Html
+getHomeR = do
+    maid <- maybeAuthId
+    defaultLayout
+        [whamlet|
+            <p>Your current auth ID: #{show maid}
+            $maybe _ <- maid
+                <p>
+                    <a href=@{AuthR LogoutR}>Logout
+            $nothing
+                <p>
+                    <a href=@{AuthR LoginR}>Go to the login page
+        |]
 
 getFile :: [T.Text] ->  Handler ()
 getFile ts = sendFile (defaultMimeLookup fname) $ T.unpack fname where
