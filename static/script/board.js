@@ -16,6 +16,8 @@ let auth = "";
 let needAuth = false;
 let player = true;
 
+const url = window.location.href;
+
 for(let i=0; i<size; i++){
     elements[i] = new Array(size);
 }
@@ -79,7 +81,7 @@ function makeMove(start, move){
     $.ajax({
         type: 'POST',
         headers: {"Authorization": auth}, 
-        url: '/api/board',
+        url: url+'/json',
         data: JSON.stringify(toSend),
         contentType: "application/json",
         dataType: 'json'
@@ -259,7 +261,7 @@ function drawPieces(pieces){
 }
 
 function getBoardState(data){
-    $.getJSON("/api/hist/last").done((move) => {
+    $.getJSON(url+"/hist/last").done((move) => {
         drawPieces(data.board);
         board = data;
         if(move.length > 0){
@@ -272,19 +274,17 @@ function getBoardState(data){
     });
 }
 
-$.getJSON("/api/needauth").done((data) => {needAuth = data});
+needAuth = true;
 $('#flip').click(() => {
     $('#chessboard').append($('#chessboard>').detach().get().reverse());
 })
 
-let url = window.location.origin;
-url = url.replace("http:", "ws:").replace("https:", "wss:");
-conn = new WebSocket(url);
+let conn = new WebSocket(url.replace("http:", "ws:").replace("https:", "wss:"));
 
 conn.onmessage = function(data) {
     getBoardState(JSON.parse(data.data));
 };
 
-$.getJSON("/api/board").done((data) => {
+$.getJSON(url+"/json").done((data) => {
     getBoardState(data);
 });

@@ -37,6 +37,7 @@ dependencies:
 - stm
 - scientific
 - aeson
+- containers
 - unordered-containers
 - persistent
 - persistent-sqlite
