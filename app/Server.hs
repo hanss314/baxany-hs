@@ -9,6 +9,7 @@
 import Yesod
 import Yesod.Auth
 import Yesod.Auth.HashDB
+import Yesod.WebSockets
 import qualified Yesod.Auth.Message as M
 import Network.Wai
 import Network.HTTP.Types.Header
@@ -25,6 +26,9 @@ import System.Random
 
 import Control.Monad.Logger (runStderrLoggingT)
 import Control.Monad
+import Control.Monad.STM
+import Control.Concurrent.STM.TChan
+import Control.Monad.Trans.Reader
 
 import Database.Persist
 import Database.Persist.Sqlite
@@ -56,6 +60,7 @@ data BaxanyServer = BaxanyServer
                   , moves :: IORef [((Int, Int), Move)]
                   , auth :: (String, String)
                   , shouldAuth :: Bool
+                  , channel :: TChan T.Text
                   , pool :: ConnectionPool
                   }
 
@@ -108,6 +113,14 @@ instance YesodAuthPersist BaxanyServer where
 
 liftIORef = liftIO . readIORef
 
+boardServer :: WebSocketsT Handler ()
+boardServer = do
+    chan <- channel <$> getYesod
+    readChan <- liftIO $ atomically $ dupTChan chan
+    forever $ do
+        t <- liftIO $ atomically $ readTChan readChan
+        sendTextData t
+
 getBoardT = do
     boardRef <- getYesod >>= (liftIORef . board)
     return $ T.pack $ show boardRef
@@ -148,10 +161,12 @@ postBoardJ = someBoardMove getBoardJ
 postBoardT = someBoardMove getBoardT
 
 getBoardPage :: Handler ()
-getBoardPage = sendFile "text/html" "static/index.html"
+getBoardPage = do
+    sendFile "text/html" "static/index.html"
 
 getHomeR :: Handler Html
 getHomeR = do
+    webSockets boardServer
     maid <- maybeAuthId
     defaultLayout
         [whamlet|
@@ -184,7 +199,8 @@ someBoardMove callback = do
         result <- liftIO $ atomicModifyIORef' boardRef (\b -> (fromRight b $ doMoveAt b pos move, doMoveAt b pos move))
         case result of
             Left err -> permissionDenied $ T.pack err
-            Right _ -> do
+            Right b -> do
+                liftIO $ atomically $ writeTChan (channel yesod) $ T.pack $ encode b
                 liftIO $ atomicModifyIORef' (moves yesod) (\ms -> ((pos, move):ms, ()))
                 callback
 
@@ -193,12 +209,13 @@ initServer = do
     board <- newIORef baxany
     moves <- newIORef []
     args <- getArgs
+    chan <- atomically newBroadcastTChan
     let shouldAuth = "auth" `elem` args
     blackAuth <- (newStdGen >>= return . take 100 . randomRs ('0', 'Z'))
     whiteAuth <- (newStdGen >>= return . take 100 . randomRs ('0', 'Z'))
     putStrLn $ "Black: " ++ blackAuth
     putStrLn $ "White: " ++ whiteAuth
-    return $ BaxanyServer board moves (blackAuth, whiteAuth) shouldAuth
+    return $ BaxanyServer board moves (blackAuth, whiteAuth) shouldAuth chan
 
 main = do
     let port = 3000

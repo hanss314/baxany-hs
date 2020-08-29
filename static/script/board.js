@@ -258,20 +258,17 @@ function drawPieces(pieces){
     }
 }
 
-function getBoardState(){
-    if(lock) return;
-    $.getJSON("/api/board").done((data) => {
-        $.getJSON("/api/hist/last").done((move) => {
-            drawPieces(data.board);
-            board = data;
-            if(move.length > 0){
-                moveCount = Math.floor(1+move[1]/2);
-                $('#turn').text('Turn: '+moveCount+". "+(data.turn?"Black":"White"));
-                setLastHighlight(move[0]);
-            } else {
-                $('#turn').text('Turn: 1. White');
-            }
-        });
+function getBoardState(data){
+    $.getJSON("/api/hist/last").done((move) => {
+        drawPieces(data.board);
+        board = data;
+        if(move.length > 0){
+            moveCount = Math.floor(1+move[1]/2);
+            $('#turn').text('Turn: '+moveCount+". "+(data.turn?"Black":"White"));
+            setLastHighlight(move[0]);
+        } else {
+            $('#turn').text('Turn: 1. White');
+        }
     });
 }
 
@@ -280,5 +277,14 @@ $('#flip').click(() => {
     $('#chessboard').append($('#chessboard>').detach().get().reverse());
 })
 
-getBoardState();
-setInterval(getBoardState, 1000);
+let url = window.location.origin;
+url = url.replace("http:", "ws:").replace("https:", "wss:");
+conn = new WebSocket(url);
+
+conn.onmessage = function(data) {
+    getBoardState(JSON.parse(data.data));
+};
+
+$.getJSON("/api/board").done((data) => {
+    getBoardState(data);
+});
