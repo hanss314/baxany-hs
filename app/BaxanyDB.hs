@@ -20,9 +20,9 @@ User
     Primary name
     UniqueUser name
     deriving Show
-DBGame
-    board Text
-    moves Text
+Game
+    board [Int]
+    moves [Int]
     black UserId
     white UserId
     deriving Show

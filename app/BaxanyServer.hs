@@ -10,51 +10,36 @@ import Database.Persist.Sqlite
 import Yesod
 import Data.Map.Strict (Map, empty)
 import Text.JSON
+import qualified Data.Vector as V
 
 import Json
 import Board
 import MoveHelper
 import Pos
 import BaxanyDB
-
-data Game = Game { board :: Board
-                 , moves :: [(Pos, Move)]
-                 , channel :: TChan Text
-                 , players :: (UserId, UserId)
-                 }
+import Piece (Color(..))
 
 data BaxanyServer = BaxanyServer 
-                  { games :: IORef (Map DBGameId Game)
+                  { channels :: IORef (Map GameId (TChan Text))
                   , pool :: ConnectionPool
                   }
 
-initBaxanyGame :: UserId -> UserId -> IO Game
-initBaxanyGame white black = do
-    channel <- atomically $ newBroadcastTChan 
-    return $ Game baxany [] channel (black, white)
+initBaxanyGame :: UserId -> UserId -> Game
+initBaxanyGame white black = Game (enumerateBoard baxany) [] black white
+
+enumerateBoard :: Board -> [Int]
+enumerateBoard b = map enumerate $ V.toList $ toVector b
 
 initServer :: IO (ConnectionPool -> BaxanyServer)
 initServer = do
     games <- newIORef empty
     return $ BaxanyServer games
 
-gameToDB :: Game -> DBGame
-gameToDB (Game b m _ (bl, wh)) = DBGame (pack $ encode b) (pack $ encode m) bl wh
-
-parseDBGameJSON :: DBGame -> Result (TChan Text -> (UserId, UserId) -> Game)
-parseDBGameJSON dbg = do
-    board <- decode $ unpack $ dBGameBoard dbg
-    moves <- decode $ unpack $ dBGameMoves dbg
-    return $ Game board moves
-
-createGameFromDB :: DBGame -> IO Game
-createGameFromDB dbg = do
-    channel <- atomically $ newBroadcastTChan 
-    let players = (dBGameBlack dbg, dBGameWhite dbg)
-    return $ case parseDBGameJSON dbg of
-        Ok result -> result channel players
-        Error _ -> Game baxany [] channel players
-
+getDBBoard :: Game -> Board
+getDBBoard dbg = Board { size = 16
+                       , turn = if ((length $ gameMoves dbg) `mod` 2) == 0 then White else Black
+                       , toVector = V.fromList $ map denumerate $ gameBoard dbg
+                       }
 
 instance YesodPersist BaxanyServer where
     type YesodPersistBackend BaxanyServer = SqlBackend

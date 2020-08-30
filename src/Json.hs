@@ -107,7 +107,7 @@ instance Enumerable Move where
     enumerate (Chain [])     = 6
     enumerate (Chain xs)     = enumerate $ N $ head xs -- fuck you
     enumerate (Push e)       = 4 + 8 * (ptoi e)
-    enumerate (Throw t e)    = 5 + 8 * (ptoi t)
+    enumerate (Throw t e)    = 5 + 8 * ((ptoi t) + 256 * (ptoi e))
     
     denumerate n = case p of
         0 -> N f
@@ -119,9 +119,9 @@ instance Enumerable Move where
         6 -> Chain []
         _ -> N (0,0) -- fuck you
         where 
-            p = n `div` 8    
-            (q, f) = second itop $ p `divMod` 256
-            s = q `divMod` 256
+            (r, p) = n `divMod` 8    
+            (q, f) = second itop $ r `divMod` 256
+            s = itop $ q `mod` 256
 
 instance Enumerable (Pos, Move) where
     enumerate (s, move) = (ptoi s) + 256 * (enumerate move)

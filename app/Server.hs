@@ -28,6 +28,7 @@ import Control.Concurrent.STM.TChan
 import Control.Monad.Trans.Reader
 
 import Database.Persist
+import qualified Database.Persist.Types as P (PersistUpdate(..))
 import Database.Persist.Sqlite
 
 import BaxanyServer
@@ -48,14 +49,14 @@ mkYesod "BaxanyServer" [parseRoutes|
 /                   HomeR       GET
 /users              UsersR      POST
 /user/#UserId       UserR       GET
-/text/#DBGameId     BoardT      GET POST
-/board/#DBGameId    BoardPage   GET
+/text/#GameId       BoardT      GET POST
+/board/#GameId      BoardPage   GET
 
-/board                          NewBoard    POST
-/board/#DBGameId/json           BoardJ      GET POST
-/board/#DBGameId/moves          MovesAt     GET
-/board/#DBGameId/hist           BoardHist   GET
-/board/#DBGameId/hist/last      LastHist    GET
+/board                        NewBoard    POST
+/board/#GameId/json           BoardJ      GET POST
+/board/#GameId/moves          MovesAt     GET
+/board/#GameId/hist           BoardHist   GET
+/board/#GameId/hist/last      LastHist    GET
 
 /auth AuthR Auth getAuth
 
@@ -86,28 +87,12 @@ instance RenderMessage BaxanyServer FormMessage where
 instance YesodAuthPersist BaxanyServer where 
     type AuthEntity BaxanyServer = User 
 
-createGameFromId :: IORef (D.Map DBGameId Game) -> DBGameId -> HandlerFor BaxanyServer Game
-createGameFromId list id = do
-    dbg <- runDB $ get404 id
-    game <- liftIO $ createGameFromDB dbg
-    liftIO $ atomicModifyIORef' list (\m -> (D.insert id game m, ()))
-    return game
-
-getGame id = do
-    yesod <- getYesod
-    gameList <- liftIORef $ games yesod
-    case gameList D.!? id of
-        Just game -> return game
-        Nothing -> createGameFromId (games yesod) id
-
 liftIORef = liftIO . readIORef
 
 postNewBoard = do
     (whiteName, blackName) <- requireCheckJsonBody :: Handler (UserId, UserId)
-    game <- liftIO $ initBaxanyGame whiteName blackName
-    gid <- runDB $ insert400 $ gameToDB game 
-    gamesRef <- games <$> getYesod
-    liftIO $ atomicModifyIORef' gamesRef (\m -> (D.insert gid game m, ()))
+    let game = initBaxanyGame whiteName blackName
+    gid <- runDB $ insert400 game 
     return $ show gid
 
 getUserR :: UserId -> Handler T.Text
@@ -115,35 +100,48 @@ getUserR id = do
     user <- runDB $ get404 id
     return $ T.pack $ show user
 
-boardServer :: Game -> WebSocketsT Handler ()
-boardServer game = do
-    let chan = channel game
+boardServer :: GameId -> WebSocketsT Handler ()
+boardServer id = do
+    chansRef <- channels <$> getYesod
+    chan <- liftIO $ join $ atomically $ return $ do
+        chans <- readIORef chansRef
+        case chans D.!? id of
+            Just c -> return c
+            Nothing -> do
+                newChan <- newBroadcastTChanIO
+                atomicModifyIORef' chansRef (\m -> (D.insert id newChan m, newChan))
+
     readChan <- liftIO $ atomically $ dupTChan chan
     forever $ do
         t <- liftIO $ atomically $ readTChan readChan
         sendTextData t
 
+getBoardT :: GameId -> Handler T.Text
 getBoardT id = do
-    game <- getGame id
-    return $ T.pack $ show $ board game
+    board <- fmap getDBBoard $ runDB $ get404 id
+    return $ T.pack $ show $ board
 
+getMovesAt :: GameId -> Handler T.Text
 getMovesAt id = do
-    boardRef <- board <$> getGame id
+    board <- fmap getDBBoard $ runDB $ get404 id
     pos <- requireCheckJsonBody :: Handler (Int, Int)
-    return $ T.pack $ encode $ movesAt boardRef pos
+    return $ T.pack $ encode $ movesAt board pos
 
+getBoardHist :: GameId -> Handler T.Text
 getBoardHist id = do
-    moveList <- moves <$> getGame id
+    moveList <- fmap gameMoves $ runDB $ get404 id
     return $ T.pack $ encode $ moveList
 
+getLastHist :: GameId -> Handler T.Text
 getLastHist id = do
-    moveList <- moves <$> getGame id
+    moveList <- fmap gameMoves $ runDB $ get404 id
     let resp = if null moveList then "[]" else encode $ (head moveList, length moveList)
     return $ T.pack $ resp
 
+getBoardJ :: GameId -> Handler T.Text
 getBoardJ id = do
-    game <- getGame id
-    return $ T.pack $ encode $ board game
+    game <- runDB $ get404 id
+    return $ T.pack $ encode $ getDBBoard game
 
 getUsers = do
     name <- requireCheckJsonBody :: Handler T.Text
@@ -159,10 +157,9 @@ postUsersR = do
 postBoardJ = someBoardMove getBoardJ
 postBoardT = someBoardMove getBoardT
 
-getBoardPage :: DBGameId -> Handler ()
+getBoardPage :: GameId -> Handler ()
 getBoardPage id = do
-    game <- getGame id
-    webSockets $ boardServer game
+    webSockets $ boardServer id
     sendFile "text/html" "static/index.html"
 
 getHomeR :: Handler Html
@@ -183,28 +180,27 @@ getFile :: [T.Text] ->  Handler ()
 getFile ts = sendFile (defaultMimeLookup fname) $ T.unpack fname where
     fname = T.intercalate "/" $ "static":ts
 
-moveGame :: DBGameId -> (Pos, Move) -> D.Map DBGameId Game -> (D.Map DBGameId Game, Either String Board)
-moveGame id (pos, move) m = case m D.!? id of
-    Nothing -> (m, Left "Board not found")
-    Just game -> case doMoveAt (board game) pos move of
-        Left err -> (m, Left err)
-        Right board -> (D.insert id (game {board=board, moves = (pos, move):(moves game)}) m, Right board)
 
 getGameTurn :: Game -> UserId
-getGameTurn g = if (turn $ board g) == Black then fst $ players g else snd $ players g 
+getGameTurn g = if (length $ gameBoard g) `mod` 2 == 1 then gameBlack g else gameWhite g 
 
-someBoardMove callback id = do  
-    game <- getGame id
-    gameList <- games <$> getYesod
+someBoardMove callback id = do
+    game <- runDB $ get404 id
     (pos, move) <- requireCheckJsonBody :: Handler (Pos, Move)
-    let turnPlayer = getGameTurn game
     maid <- maybeAuthId
-    unless (maybe False (==turnPlayer) maid) $ permissionDenied "You may not play here"
-    result <- liftIO $ atomicModifyIORef' gameList $ moveGame id (pos, move)
-    case result of
+    unless (maybe False (==getGameTurn game) maid) $ permissionDenied "You may not play here"
+    let board = getDBBoard game
+    let moves = map denumerate $ gameMoves game :: [(Pos, Move)]
+    case doMoveAt board pos move of
         Left err -> permissionDenied $ T.pack err
         Right b -> do
-            liftIO $ atomically $ writeTChan (channel game) $ T.pack $ encode b
+            chans <- getYesod >>= (liftIORef . channels)
+            case chans D.!? id of
+                Nothing -> return ()
+                Just chan -> liftIO $ atomically $ writeTChan chan $ T.pack $ encode (b, ((pos, move), length moves + 1))
+            let updateBoard = Update GameBoard $ enumerateBoard b
+            let updateMoves = Update GameMoves $ map enumerate $ (pos,move) : moves
+            runDB $ update id [updateBoard P.Assign, updateMoves P.Assign]
             callback id
 
 main = do

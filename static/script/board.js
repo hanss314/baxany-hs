@@ -31,14 +31,16 @@ function setLastHighlight(move){
     }
     lastMoved = [];
     lastMoved.push(start);
-    if(end.type < 3){
-        lastMoved.push(end.pos);
-    }else if(end.type === 4){
-        let nx = end.pos[1][0] + end.pos[0][0] - start[0];
-        let ny = end.pos[1][1] + end.pos[0][1] - start[1];
-        lastMoved.push(end.pos[0], end.pos[1], [nx, ny]);
+    let type = end%8;
+    if(type === 0 || type === 1 || type === 4){
+        lastMoved.push(itop(end/8));
+    }else if(end.type === 2){
+        let ep0 = itop(end/8), ep1 = itop(end/8/256);
+        let nx = ep1[0] + ep0[0] - start[0];
+        let ny = ep1[1] + ep0[1] - start[1];
+        lastMoved.push(ep0, ep1, [nx, ny]);
     }else{
-        lastMoved.push(...end.pos);
+        lastMoved.push(itop(end/8), itop(end/8/256));
     }
     for(let i=0; i<lastMoved.length; i++){
         let p = lastMoved[i];
@@ -46,14 +48,18 @@ function setLastHighlight(move){
     }
 }
 
+function itop(n){
+    return [Math.floor(n)%16, Math.floor(n/16)%16]
+}
+
 function getFst(move){
-    if(move.type < 3) return move.pos;
-    else return move.pos[0];
+    return itop(move/8);
 }
 
 function getSnd(move){
-    if(move.type < 3) return move.pos;
-    else return move.pos[1];
+    let type = move%8;
+    if(type===2 || type===3 || type===5) return itop(move/8/256);
+    else return itop(move/8);
 }
 
 function peq(a,b){
@@ -61,13 +67,14 @@ function peq(a,b){
 }
 
 function makeMove(start, move){
-    let toSend = [start, move]
+    let toSend = start[0] + 16*start[1] + 256*move;
     for(let i=0; i<size; i++)for(let j=0; j<size; j++){
         elements[i][j].removeClass("green");
         elements[i][j].removeClass("blue");
     }
+    console.log(start, move);
     highlighted = [];
-    setLastHighlight(toSend);
+    setLastHighlight([start, move]);
     console.log('Making move');
     let either = doMove(board, toSend);
     console.log('Made move');
@@ -175,7 +182,7 @@ function selectMove(x,y){
     choosable = [];
     if(chooseStage === 0){
         moveCandidates = moveCandidates.filter((p) => peq(getFst(p), [x,y]));
-        if(moveCandidates.length === 1 && moveCandidates[0].type < 3) {
+        if(moveCandidates.length === 1 && moveCandidates[0]%8 < 3) {
             makeMove(selected, moveCandidates[0]);
             return;
         }
@@ -209,8 +216,9 @@ function handleClick(x,y){
             }
         }
     }
-    if(board.board[y*size+x].type === 1){
-        if(board.board[y*size+x].color === board.turn && isAuthed) {
+    if(board.board[y*size+x] >= 0){
+        let turn = board.board[y*size+x]%2 === 0;
+        if(turn === board.turn && isAuthed) {
             selectPiece(x,y);
         } else {
             showPiece(x,y);
@@ -219,7 +227,8 @@ function handleClick(x,y){
             $('#description').html("");
             return;
         }
-        let type = board.board[y*size+x].piece.type;
+        let type = Math.floor(board.board[y*size+x]/2)%64;
+        if (type === 60) type = 28;
         let text = "<h2>" + titles[type] + "</h2><br />" + descriptions[type];
         $('#description').html(text);
 
@@ -250,7 +259,7 @@ function drawPieces(pieces){
                 img = "none";
             } else {
                 let url = "/img/";
-                url += piece%2 ? "black" : "white";
+                url += piece%2 ? "white" : "black";
                 let type = Math.floor(piece/2) %64;
                 if(type == 60) type = 28; 
                 url += type;
@@ -262,18 +271,17 @@ function drawPieces(pieces){
     }
 }
 
-function getBoardState(data){
-    $.getJSON(url+"/hist/last").done((move) => {
-        drawPieces(data.board);
-        board = data;
-        if(move.length > 0){
-            moveCount = Math.floor(1+move[1]/2);
-            $('#turn').text('Turn: '+moveCount+". "+(data.turn?"Black":"White"));
-            setLastHighlight(move[0]);
-        } else {
-            $('#turn').text('Turn: 1. White');
-        }
-    });
+function getBoardState(data, move){
+    console.log(move);
+    drawPieces(data.board);
+    board = data;
+    if(move.length > 0){
+        moveCount = Math.floor(1+move[1]/2);
+        $('#turn').text('Turn: '+moveCount+". "+(data.turn?"Black":"White"));
+        setLastHighlight([itop(move[0]), Math.floor(move[0]/256)]);
+    } else {
+        $('#turn').text('Turn: 1. White');
+    }
 }
 
 needAuth = true;
@@ -284,9 +292,13 @@ $('#flip').click(() => {
 let conn = new WebSocket(url.replace("http:", "ws:").replace("https:", "wss:"));
 
 conn.onmessage = function(data) {
-    getBoardState(JSON.parse(data.data));
+    console.log(data);
+    let info = JSON.parse(data.data)
+    getBoardState(info[0], info[1]);
 };
 
 $.getJSON(url+"/json").done((data) => {
-    getBoardState(data);
+    $.getJSON(url+"/hist/last").done((move) => {
+        getBoardState(data, move);
+    });
 });

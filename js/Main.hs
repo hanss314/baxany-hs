@@ -44,7 +44,9 @@ jsDoMove :: JSVal -> JSVal -> IO JSVal
 jsDoMove b m = do
     board <- valToObj b :: IO Board
     move <- valToObj m :: IO ((Int, Int), Move)
-    objToVal $ doMoveAt board (fst move) (snd move)
+    objToVal $ case doMoveAt board (fst move) (snd move) of
+        Left err -> Left $ err ++ (show move)
+        x -> x
 
 returnViaArgument :: (JSVal -> IO JSVal) -> JSVal -> JSVal -> IO ()
 returnViaArgument f arg retObj = do
