@@ -55,5 +55,5 @@ fromOk (Ok x) = x
 main = do
     handle <- openFile "moves.json" ReadMode
     contents <- hGetContents handle
-    let moves = decode contents
+    let moves = decode contents :: Result [((Int, Int), Move)]
     writeFile "moves.txt" $ unlines $ movesToStrings 1 brokeBaxany $ reverse $ fromOk moves

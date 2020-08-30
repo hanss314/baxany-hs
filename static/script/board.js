@@ -246,12 +246,14 @@ function drawPieces(pieces){
         for(let j=0; j<size; j++){
             let piece = pieces[j*size+i];
             let img;
-            if(piece.type != 1){
+            if(piece < 0){
                 img = "none";
             } else {
                 let url = "/img/";
-                url += piece.color ? "black" : "white";
-                url += piece.piece.type;
+                url += piece%2 ? "black" : "white";
+                let type = Math.floor(piece/2) %64;
+                if(type == 60) type = 28; 
+                url += type;
                 url += ".png"
                 img = "url("+url+")"
             }

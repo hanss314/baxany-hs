@@ -66,12 +66,6 @@ initDB = runSqlite sqlDB $ runMigration migrateAll
 
 instance Yesod BaxanyServer
 
-instance YesodPersist BaxanyServer where
-    type YesodPersistBackend BaxanyServer = SqlBackend
-    runDB action = do
-        server <- getYesod
-        runSqlPool action $ pool server
-
 instance YesodAuth BaxanyServer where
     type AuthId BaxanyServer = UserId
     

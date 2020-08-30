@@ -1,10 +1,12 @@
+{-# LANGUAGE TypeFamilies #-} 
+
 module BaxanyServer where
 
 import Data.IORef
 import Data.Text (Text, unpack, pack)
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM (atomically)
-import Database.Persist.Sqlite (ConnectionPool)
+import Database.Persist.Sqlite 
 import Yesod
 import Data.Map.Strict (Map, empty)
 import Text.JSON
@@ -52,3 +54,10 @@ createGameFromDB dbg = do
     return $ case parseDBGameJSON dbg of
         Ok result -> result channel players
         Error _ -> Game baxany [] channel players
+
+
+instance YesodPersist BaxanyServer where
+    type YesodPersistBackend BaxanyServer = SqlBackend
+    runDB action = do
+        server <- getYesod
+        runSqlPool action $ pool server
