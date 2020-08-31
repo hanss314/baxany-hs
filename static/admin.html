@@ -1,0 +1,36 @@
+<html>
+
+<head>
+<meta charset="UTF-8"> 
+<title>Baxany Chess</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+
+<body style="background-color: #ccccdd">
+    <h1> New User </h1>
+    <label for="name">Name: </label>
+    <input type="text" id="name" name="name"><br />
+    <label for="pass">Pass: </label>
+    <input type="password" id="pass" name="pass"><br />
+    <button id="submit">Create User</button>
+    <script>
+     $('#submit').click((e) => {
+        e.preventDefault();
+        let creds = [$('#name').val(), $('#pass').val()];
+        console.log(creds);
+        $.ajax({
+           type: 'POST',
+           url: '/users',
+           data: JSON.stringify(creds),
+           contentType: "application/json",
+           dataType: 'json'
+       }).done((data) => {
+           console.log("done", data);
+       }).fail((e) => {
+           console.log("fail", e);
+           window.alert("Failed, check logs");
+       });
+    })
+    </script>
+</body>
+</html>
