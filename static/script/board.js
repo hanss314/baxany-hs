@@ -12,9 +12,7 @@ let lock = false;
 
 let moveCount = 1;
 
-let auth = "";
-let needAuth = false;
-let player = true;
+let player;
 
 const url = window.location.href;
 
@@ -72,12 +70,9 @@ function makeMove(start, move){
         elements[i][j].removeClass("green");
         elements[i][j].removeClass("blue");
     }
-    console.log(start, move);
     highlighted = [];
     setLastHighlight([start, move]);
-    console.log('Making move');
     let either = doMove(board, toSend);
-    console.log('Made move');
     if ('Left' in either){
         alert(either.Left);
         selected = [-1,-1];
@@ -87,7 +82,6 @@ function makeMove(start, move){
     lock = true;
     $.ajax({
         type: 'POST',
-        headers: {"Authorization": auth}, 
         url: url+'/json',
         data: JSON.stringify(toSend),
         contentType: "application/json",
@@ -182,7 +176,8 @@ function selectMove(x,y){
     choosable = [];
     if(chooseStage === 0){
         moveCandidates = moveCandidates.filter((p) => peq(getFst(p), [x,y]));
-        if(moveCandidates.length === 1 && moveCandidates[0]%8 < 3) {
+        let type = moveCandidates[0] % 8;
+        if(moveCandidates.length === 1 && (type === 0 || type === 1 || type === 4)) {
             makeMove(selected, moveCandidates[0]);
             return;
         }
@@ -207,7 +202,8 @@ function selectMove(x,y){
 }
 
 function handleClick(x,y){
-    let isAuthed = !needAuth || (auth !== "" && board.turn === player);
+    let isAuthed = board.turn ? player === 2 : player === 1;
+    isAuthed = isAuthed || player === 3;
     if(isAuthed){
         for(let i=0; i<choosable.length; i++){
             if(peq(choosable[i], [x,y])){
@@ -272,7 +268,6 @@ function drawPieces(pieces){
 }
 
 function getBoardState(data, move){
-    console.log(move);
     drawPieces(data.board);
     board = data;
     if(move.length > 0){
@@ -292,7 +287,6 @@ $('#flip').click(() => {
 let conn = new WebSocket(url.replace("http:", "ws:").replace("https:", "wss:"));
 
 conn.onmessage = function(data) {
-    console.log(data);
     let info = JSON.parse(data.data)
     getBoardState(info[0], info[1]);
 };
@@ -301,4 +295,12 @@ $.getJSON(url+"/json").done((data) => {
     $.getJSON(url+"/hist/last").done((move) => {
         getBoardState(data, move);
     });
+});
+$.getJSON(url+"/creds").done((data) => {
+    player = data;
+});
+
+$.getJSON(url+"/players").done((data) => {
+    let ps = "<i>" + data[0] + "</i>(W) vs <i>" + data[1] + "</i>(B) ";
+    $('#players').html(ps);
 });

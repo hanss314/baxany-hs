@@ -3,28 +3,29 @@
 <head>
 <meta charset="UTF-8"> 
 <title>Baxany Chess</title>
-<link rel="stylesheet" type="text/css" href="/style/board.css?v=5">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<script language="javascript" src="/Main.jsexe/rts.js?v=5"></script>
-<script language="javascript" src="/Main.jsexe/lib.js?v=5"></script>
-<script language="javascript" src="/Main.jsexe/out.js?v=5"></script>
-
 </head>
 
-<body>
-    <div id="chessboard"></div>
-    <div id="sidebar">
-        <a href="https://docs.google.com/document/d/1MO7BHa-XYjIX53ZlTkt5xArmuwEb2q9_Fn5PNszR8r8/edit">Rules</a>
-        <br />
-        <!--<i>hanss314</i> vs <i>Bazinga_9000</i> at Sunday, Aug. 22, 6:00PM ET <br />
-        Match discussion will be on <a href="https://discord.gg/dxCBaYn">discord</a><br />-->
-        <h1 id="turn"></h1> <br />
-        <button id="flip"> Flip board</button>
-        <div id="description"></div>
+<body style="background-color: #ccccdd">
+    <span id="info" style="margin-right: 40px;"></span><a id="link" href=""></a>
+    <br /><br />
+    <div id="data" style="display: none; visibility: hidden;">
+        <h1> New Game </h1>
+        <form>
+            <label for="opponent">Opponent: </label>
+            <input type="text" id="opponent" name="opponent"><br />
+
+            <input type="radio" id="white" name="color" value="white">
+            <label for="white">White</label>
+            <input type="radio" id="black" name="color" value="black">
+            <label for="black">Black</label>
+            <input type="radio" id="random" name="color" value="random">
+            <label for="random">Random</label><br />
+            <button id="newgame">New Game!</button>
+        </form>
+        <h1>Your Games</h1>
+        <div id="games"></div>
     </div>
-    <script language="javascript" src="/Main.jsexe/runmain.js?v=5" defer></script>
-    <script src="/script/lib.js?v=5"></script>
-    <script src="/script/descriptions.js?v=5"></script>
-    <script src="/script/board.js?v=9"></script>
+    <script src="/script/index.js?v=9"></script>
 </body>
 </html>

@@ -91,6 +91,11 @@ instance A.FromJSON (Pos, Move) where
     parseJSON (A.Number n) = return $ denumerate $ fromIntegral $ truncate n
     parseJSON x = A.typeMismatch "Expected integer" x
 
+instance A.ToJSON Move where toJSON = (A.Number . fromIntegral . enumerate)
+instance A.FromJSON Move where 
+    parseJSON (A.Number n) = return $ denumerate $ fromIntegral $ truncate n
+    parseJSON x = A.typeMismatch "Expected integer" x
+
 class Enumerable a where
     enumerate :: a -> Int
     denumerate :: Int -> a
