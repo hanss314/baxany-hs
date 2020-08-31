@@ -15,6 +15,7 @@ import Network.HTTP.Types.Header
 
 import Data.IORef
 import Data.Either
+import Data.Maybe
 import Data.String
 import qualified Data.Text as T
 import Text.JSON
@@ -74,7 +75,7 @@ instance Yesod BaxanyServer where
     authRoute _ = Just $ AuthR LoginR
 
     isAuthorized NewBoard _ = isAccount (/= "anyone")
-    isAuthorized (UserR _) True = isAccount (/= "anyone")
+    isAuthorized Password _ = isAccount (/= "anyone")
     isAuthorized UsersR True = isAccount (== "hans")
     isAuthorized AdminPage _ = isAccount (== "hans")
     isAuthorized _ _ = return Authorized
@@ -94,7 +95,6 @@ instance YesodAuth BaxanyServer where
     authenticate creds = liftHandler $ runDB $ do
         let name = credsIdent creds
         x <- getBy $ UniqueUser name
-        liftIO $ print x
         return $ case x of 
             Just (Entity username _) -> Authenticated username
             Nothing -> UserError $ M.IdentifierNotFound name
@@ -175,8 +175,6 @@ getUsersR = do
 
 postUsersR = do
     (name, pass) <- requireCheckJsonBody :: Handler (T.Text, T.Text)
-    liftIO $ print name
-    liftIO $ print pass
     user <- setPassword pass $ User name Nothing
     runDB $ insert400_ user
     return name
@@ -213,20 +211,23 @@ getGameTurn g = if ((length $ gameMoves g) `mod` 2) == 1 then (gameBlack g) else
 getGameCreds :: GameId -> Handler T.Text
 getGameCreds id = do
     game <- runDB $ get404 id
-    maid <- maybeAuthId
-    case maid of 
-        Nothing -> return "0"
-        Just aid -> do
-            let white = if gameWhite game == aid then 1 else 0
-            let black = if gameBlack game == aid then 2 else 0
-            return $ T.pack $ show (white + black)
+    anyoneid <- fmap entityKey $ runDB $ getBy404 $ UniqueUser "anyone"
+    aid <- fromMaybe anyoneid <$> maybeAuthId
+    let whiteId = gameWhite game
+    let blackId = gameBlack game
+    let white = if whiteId == aid || whiteId == anyoneid then 1 else 0
+    let black = if blackId == aid || blackId == anyoneid then 2 else 0
+    return $ T.pack $ show (white + black)
 
 someBoardMove :: (GameId -> Handler a) -> GameId -> Handler a
 someBoardMove callback id = do
     game <- runDB $ get404 id
     (pos, move) <- requireCheckJsonBody :: Handler (Pos, Move)
-    maid <- maybeAuthId
-    unless (maybe False (==getGameTurn game) maid) $ permissionDenied "You may not play here"
+    anyoneid <- fmap entityKey $ runDB $ getBy404 $ UniqueUser "anyone"
+    aid <- fromMaybe anyoneid <$> maybeAuthId
+    let turn = getGameTurn game
+    mu <- fmap userName $ runDB $ get404 turn
+    unless (aid==turn || turn==anyoneid) $ permissionDenied "You may not play here"
     let board = getDBBoard game
     let moves = map denumerate $ gameMoves game :: [(Pos, Move)]
     case doMoveAt board pos move of

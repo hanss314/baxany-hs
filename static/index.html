@@ -11,18 +11,23 @@
     <br /><br />
     <div id="data" style="display: none; visibility: hidden;">
         <h1> New Game </h1>
-        <form>
-            <label for="opponent">Opponent: </label>
-            <input type="text" id="opponent" name="opponent"><br />
+        <label for="opponent">Opponent: </label>
+        <input type="text" id="opponent" name="opponent"><br />
 
-            <input type="radio" id="white" name="color" value="white">
-            <label for="white">White</label>
-            <input type="radio" id="black" name="color" value="black">
-            <label for="black">Black</label>
-            <input type="radio" id="random" name="color" value="random">
-            <label for="random">Random</label><br />
-            <button id="newgame">New Game!</button>
-        </form>
+        <input type="radio" id="white" name="color" value="white">
+        <label for="white">White</label>
+        <input type="radio" id="black" name="color" value="black">
+        <label for="black">Black</label>
+        <input type="radio" id="random" name="color" value="random">
+        <label for="random">Random</label><br />
+        <button id="newgame">New Game!</button>
+        <br />
+        <h1> Change Password</h1>
+        <label for="pass">New Password: </label>
+        <input type="password" id="pass" name="pass"><br />
+        If you forget your password, @hans and I will reset it.<br />
+        <button id="newpass">Change Password</button>
+
         <h1>Your Games</h1>
         <div id="games"></div>
     </div>
