@@ -287,6 +287,7 @@ $('#flip').click(() => {
 let conn = new WebSocket(url.replace("http:", "ws:").replace("https:", "wss:"));
 
 conn.onmessage = function(data) {
+    console.log(data);
     let info = JSON.parse(data.data)
     getBoardState(info[0], info[1]);
 };

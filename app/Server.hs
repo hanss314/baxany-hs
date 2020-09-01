@@ -3,6 +3,7 @@
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE ViewPatterns      #-}
 {-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 import Yesod
@@ -11,6 +12,7 @@ import Yesod.Auth.HashDB
 import Yesod.WebSockets
 import qualified Yesod.Auth.Message as M
 import Network.Wai
+import Network.WebSockets (ConnectionException)
 import Network.HTTP.Types.Header
 
 import Data.IORef
@@ -28,6 +30,9 @@ import Control.Monad
 import Control.Monad.STM
 import Control.Concurrent.STM.TChan
 import Control.Monad.Trans.Reader
+import qualified Control.Exception as E
+import Control.Monad.IO.Unlift
+import Control.Concurrent (threadDelay)
 
 import Database.Persist
 import qualified Database.Persist.Types as P (PersistUpdate(..))
@@ -132,15 +137,28 @@ boardServer id = do
     chan <- liftIO $ join $ atomically $ return $ do
         chans <- readIORef chansRef
         case chans D.!? id of
-            Just c -> return c
+            Just (i, c) -> atomicModifyIORef' chansRef $ \m -> (D.insert id (i+1, c) m, c)
             Nothing -> do
                 newChan <- newBroadcastTChanIO
-                atomicModifyIORef' chansRef (\m -> (D.insert id newChan m, newChan))
-
+                atomicModifyIORef' chansRef $ \m -> (D.insert id (1, newChan) m, newChan)
+    
     readChan <- liftIO $ atomically $ dupTChan chan
-    forever $ do
-        t <- liftIO $ atomically $ readTChan readChan
-        sendTextData t
+    let sendBoard = do
+            t <- liftIO $ atomically $ readTChan readChan
+            sendTextData t
+        ping = do
+            liftIO $ threadDelay (5*1000*1000)
+            sendPing ("ping" :: T.Text)
+    action <- toIO $ forever $ race_ sendBoard ping
+    liftIO $ E.finally action $ join $ atomically $ return $ do 
+        chans <- readIORef chansRef
+        case chans D.!? id of 
+            Nothing -> return ()
+            Just (i,c) -> if i > 1 
+                then atomicModifyIORef' chansRef $ \m -> (D.insert id (i-1, c) m, ())
+                else do
+                    atomicModifyIORef' chansRef $ \m -> (D.delete id m, ())
+                    putStrLn "Channel deleted"
 
 getBoardT :: GameId -> Handler T.Text
 getBoardT id = do
@@ -236,7 +254,7 @@ someBoardMove callback id = do
             chans <- getYesod >>= (liftIORef . channels)
             case chans D.!? id of
                 Nothing -> return ()
-                Just chan -> liftIO $ atomically $ writeTChan chan $ T.pack $ encode (b, ((pos, move), length moves + 1))
+                Just (_, chan) -> liftIO $ atomically $ writeTChan chan $ T.pack $ encode (b, ((pos, move), length moves + 1))
             let updateBoard = Update GameBoard $ enumerateBoard b
             let updateMoves = Update GameMoves $ map enumerate $ (pos,move) : moves
             runDB $ update id [updateBoard P.Assign, updateMoves P.Assign]

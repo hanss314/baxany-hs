@@ -20,7 +20,7 @@ import BaxanyDB
 import Piece (Color(..))
 
 data BaxanyServer = BaxanyServer 
-                  { channels :: IORef (Map GameId (TChan Text))
+                  { channels :: IORef (Map GameId (Int, TChan Text))
                   , pool :: ConnectionPool
                   }
 

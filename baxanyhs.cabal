@@ -56,9 +56,11 @@ library
     , stm
     , text
     , transformers
+    , unliftio-core
     , unordered-containers
     , vector
     , wai
+    , websockets
     , yesod
     , yesod-auth
     , yesod-auth-hashdb
@@ -92,9 +94,11 @@ executable baxanyhs-exe
     , stm
     , text
     , transformers
+    , unliftio-core
     , unordered-containers
     , vector
     , wai
+    , websockets
     , yesod
     , yesod-auth
     , yesod-auth-hashdb
@@ -127,9 +131,11 @@ test-suite baxanyhs-test
     , stm
     , text
     , transformers
+    , unliftio-core
     , unordered-containers
     , vector
     , wai
+    , websockets
     , yesod
     , yesod-auth
     , yesod-auth-hashdb

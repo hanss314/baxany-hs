@@ -43,6 +43,8 @@ dependencies:
 - persistent-sqlite
 - persistent-template
 - monad-logger
+- unliftio-core
+- websockets
 library:
   source-dirs: src
 
