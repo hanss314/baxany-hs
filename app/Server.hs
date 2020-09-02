@@ -134,31 +134,25 @@ getPlayers id = do
 boardServer :: GameId -> WebSocketsT Handler ()
 boardServer id = do
     chansRef <- channels <$> getYesod
-    chan <- liftIO $ join $ atomically $ return $ do
-        chans <- readIORef chansRef
-        case chans D.!? id of
-            Just (i, c) -> atomicModifyIORef' chansRef $ \m -> (D.insert id (i+1, c) m, c)
-            Nothing -> do
-                newChan <- newBroadcastTChanIO
-                atomicModifyIORef' chansRef $ \m -> (D.insert id (1, newChan) m, newChan)
+    newChan <- liftIO $ newBroadcastTChanIO
+    chan <- liftIO $ atomicModifyIORef' chansRef $ \m -> case m D.!? id of
+        Just (i, c) -> (D.insert id (i+1, c) m, c)
+        Nothing -> (D.insert id (1, newChan) m, newChan)
     
     readChan <- liftIO $ atomically $ dupTChan chan
     let sendBoard = do
             t <- liftIO $ atomically $ readTChan readChan
             sendTextData t
         ping = do
-            liftIO $ threadDelay (5*1000*1000)
+            liftIO $ threadDelay (60*1000*1000)
             sendPing ("ping" :: T.Text)
+
     action <- toIO $ forever $ race_ sendBoard ping
-    liftIO $ E.finally action $ join $ atomically $ return $ do 
-        chans <- readIORef chansRef
-        case chans D.!? id of 
-            Nothing -> return ()
-            Just (i,c) -> if i > 1 
-                then atomicModifyIORef' chansRef $ \m -> (D.insert id (i-1, c) m, ())
-                else do
-                    atomicModifyIORef' chansRef $ \m -> (D.delete id m, ())
-                    putStrLn "Channel deleted"
+    liftIO $ E.finally action $ atomicModifyIORef' chansRef $ \m -> case m D.!? id of
+        Nothing -> (m, ())
+        Just (i,c) -> if i > 1 
+            then (D.insert id (i-1, c) m, ())
+            else (D.delete id m, ())
 
 getBoardT :: GameId -> Handler T.Text
 getBoardT id = do
